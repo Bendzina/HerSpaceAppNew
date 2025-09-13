@@ -88,7 +88,19 @@ export default function RoutineEditScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Stack.Screen options={{ title: isEditing ? (language === 'ka' ? 'რუტინის რედაქტირება' : 'Edit Routine') : (language === 'ka' ? 'ახალი რუტინა' : 'New Routine') }} />
+      <Stack.Screen 
+        options={({ navigation }) => ({
+          title: isEditing ? (language === 'ka' ? 'რუტინის რედაქტირება' : 'Edit Routine') : (language === 'ka' ? 'ახალი რუტინა' : 'New Routine'),
+          headerLeft: () => (
+            <TouchableOpacity 
+              onPress={() => navigation.goBack()}
+              style={{ marginLeft: 15 }}
+            >
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
+            </TouchableOpacity>
+          ),
+        })}
+      />
 
       {loading ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>

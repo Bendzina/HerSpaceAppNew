@@ -73,15 +73,23 @@ export default function MotherhoodJournalList() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Stack.Screen
-        options={{
-          title: t.journal,
+      <Stack.Screen 
+        options={({ navigation }) => ({
+          title: t.journal || 'Journal',
+          headerLeft: () => (
+            <TouchableOpacity 
+              onPress={() => navigation.goBack()}
+              style={{ marginLeft: 15 }}
+            >
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
+            </TouchableOpacity>
+          ),
           headerRight: () => (
             <TouchableOpacity onPress={() => router.push('/motherhood/journal/new' as never)} style={{ paddingHorizontal: 12 }}>
               <Ionicons name="add" size={22} color={colors.text} />
             </TouchableOpacity>
           )
-        }}
+        })}
       />
 
       <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>

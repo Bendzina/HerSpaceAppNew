@@ -78,7 +78,19 @@ export default function SupportGroupsList() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Stack.Screen options={{ title: t.supportGroups }} />
+      <Stack.Screen 
+        options={({ navigation }) => ({
+          title: t.supportGroups || 'Support Groups',
+          headerLeft: () => (
+            <TouchableOpacity 
+              onPress={() => navigation.goBack()}
+              style={{ marginLeft: 15 }}
+            >
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
+            </TouchableOpacity>
+          ),
+        })}
+      />
 
       <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
         <View style={[styles.searchBox, { borderColor: colors.border, backgroundColor: colors.surface }]}> 

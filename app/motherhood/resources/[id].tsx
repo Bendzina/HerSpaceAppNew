@@ -33,15 +33,23 @@ export default function ResourceDetailScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Stack.Screen options={{ headerShown: false }} />
-
-      <View style={[styles.header, { backgroundColor: colors.background }]}> 
-        <TouchableOpacity onPress={() => router.back()} style={{ paddingRight: 8 }}>
-          <Ionicons name="chevron-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>{t.resources}</Text>
-        <View style={{ width: 24 }} />
-      </View>
+      <Stack.Screen 
+        options={{
+          title: item?.title || t.resources,
+          headerTitleStyle: {
+            fontSize: 20,
+            fontWeight: '600',
+            color: colors.text,
+          },
+          headerBackTitle: t.back,
+          headerBackVisible: true,
+          headerTintColor: colors.text,
+          headerStyle: {
+            backgroundColor: colors.background,
+          },
+          headerShadowVisible: false,
+        }}
+      />
 
       {loading ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
@@ -93,15 +101,6 @@ export default function ResourceDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    paddingHorizontal: 12,
-    paddingTop: 14,
-    paddingBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  headerTitle: { fontSize: 18, fontWeight: '700', flex: 1 },
   title: { fontSize: 24, fontWeight: '800' },
   chip: {
     borderWidth: 1,
@@ -111,7 +110,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  subtitle: { fontSize: 14 },
+  subtitle: { fontSize: 14, paddingHorizontal: 8, paddingVertical: 4 },
   primaryBtn: {
     marginTop: 16,
     borderRadius: 14,

@@ -1,11 +1,11 @@
-import React from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, Switch } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@/app/ThemeContext';
 import { useLanguage } from '@/app/LanguageContext';
+import { useTheme } from '@/app/ThemeContext';
 import { translations } from '@/i18n/translations';
-import { getJournal, createJournal, updateJournal, deleteJournal, type MotherhoodJournalEntry } from '@/services/motherhoodJournalService';
+import { createJournal, deleteJournal, getJournal, updateJournal } from '@/services/motherhoodJournalService';
+import { Ionicons } from '@expo/vector-icons';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import React from 'react';
+import { Alert, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const moods = ['happy','calm','sad','anxious'] as const;
 

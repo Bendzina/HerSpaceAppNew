@@ -1,11 +1,11 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@/app/ThemeContext';
 import { useLanguage } from '@/app/LanguageContext';
+import { useTheme } from '@/app/ThemeContext';
 import { translations } from '@/i18n/translations';
 import { getSupportGroup, type SupportGroup } from '@/services/motherhoodSupportService';
+import { Ionicons } from '@expo/vector-icons';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import React from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function SupportGroupDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();

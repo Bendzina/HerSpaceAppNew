@@ -88,7 +88,18 @@ export default function ResourcesListScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Stack.Screen options={{ title: t.resources }} />
+      <Stack.Screen 
+        options={{ 
+          title: t.resources || 'Resources',
+          headerTitleStyle: { 
+            fontSize: 20,
+            fontWeight: '600',
+            color: colors.text,
+          },
+          headerBackTitle: '',
+          headerBackVisible: true,
+        }}
+      />
 
       <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
         <View style={[styles.searchBox, { borderColor: colors.border, backgroundColor: colors.surface }]}> 

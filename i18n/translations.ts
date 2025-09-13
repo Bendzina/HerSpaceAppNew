@@ -6,6 +6,9 @@ interface TranslationKeys {
   language: string;
   english: string;
   georgian: string;
+  error: string;
+  cancel: string;
+  reset: string;
   
   // Navigation
   motherhood: string;
@@ -51,6 +54,33 @@ interface TranslationKeys {
   moodCalm: string;
   moodSad: string;
   moodAnxious: string;
+
+  // Notifications
+  notificationSettings: {
+    resetTitle: string;
+    resetMessage: string;
+    resetError: string;
+    updateError: string;
+    mainNotifications: string;
+    goalsAchievements: string;
+    optionalNotifications: string;
+    dailyReminders: string;
+    dailyRemindersDesc: string;
+    weeklyGoals: string;
+    weeklyGoalsDesc: string;
+    achievementAlerts: string;
+    achievementAlertsDesc: string;
+    journalReminders: string;
+    journalRemindersDesc: string;
+    meditationAlerts: string;
+    meditationAlertsDesc: string;
+    motivationalQuotes: string;
+    motivationalQuotesDesc: string;
+    systemUpdates: string;
+    systemUpdatesDesc: string;
+    marketingEmails: string;
+    marketingEmailsDesc: string;
+  };
 }
 
 export const translations: { en: TranslationKeys; ka: TranslationKeys } = {
@@ -61,6 +91,9 @@ export const translations: { en: TranslationKeys; ka: TranslationKeys } = {
     language: 'Language',
     english: 'English',
     georgian: 'ქართული',
+    error: 'Error',
+    cancel: 'Cancel',
+    reset: 'Reset',
     // Common navigation / sections
     motherhood: 'Motherhood',
     community: 'Community',
@@ -109,6 +142,31 @@ export const translations: { en: TranslationKeys; ka: TranslationKeys } = {
     moodCalm: 'Calm',
     moodSad: 'Sad',
     moodAnxious: 'Anxious',
+    notificationSettings: {
+      resetTitle: 'Reset Notification Settings',
+      resetMessage: 'Are you sure you want to reset all notification settings to default?',
+      resetError: 'Failed to reset notification settings',
+      updateError: 'Failed to update notification settings',
+      mainNotifications: 'Main Notifications',
+      goalsAchievements: 'Goals & Achievements',
+      optionalNotifications: 'Optional Notifications',
+      dailyReminders: 'Daily Reminders',
+      dailyRemindersDesc: 'Get reminders to check in with your mood and complete daily tasks',
+      weeklyGoals: 'Weekly Goals',
+      weeklyGoalsDesc: 'Get updates on your weekly progress and goals',
+      achievementAlerts: 'Achievement Alerts',
+      achievementAlertsDesc: 'Get notified when you complete achievements',
+      journalReminders: 'Journal Reminders',
+      journalRemindersDesc: 'Reminders to write in your journal',
+      meditationAlerts: 'Meditation Reminders',
+      meditationAlertsDesc: 'Reminders for your meditation practice',
+      motivationalQuotes: 'Motivational Quotes',
+      motivationalQuotesDesc: 'Receive daily motivational quotes',
+      systemUpdates: 'System Updates',
+      systemUpdatesDesc: 'Important updates about the app',
+      marketingEmails: 'Marketing Emails',
+      marketingEmailsDesc: 'Receive promotional emails and offers'
+    },
   },
   ka: {
     appPreferences: 'აპლიკაციის პარამეტრები',
@@ -117,6 +175,9 @@ export const translations: { en: TranslationKeys; ka: TranslationKeys } = {
     language: 'ენა',
     english: 'English',
     georgian: 'ქართული',
+    error: 'შეცდომა',
+    cancel: 'გაუქმება',
+    reset: 'განულება',
     motherhood: 'დედობა',
     community: 'თემა',
     anonymousUser: 'ანონიმური მომხმარებელი',
@@ -160,5 +221,30 @@ export const translations: { en: TranslationKeys; ka: TranslationKeys } = {
     moodCalm: 'მშვიდი',
     moodSad: 'სევდიანი',
     moodAnxious: 'შეწუხებული',
+    notificationSettings: {
+      resetTitle: 'შეტყობინებების განულება',
+      resetMessage: 'დარწმუნებული ხართ, რომ გსურთ ყველა პარამეტრის განულება?',
+      resetError: 'შეტყობინებების განულება ვერ მოხერხდა',
+      updateError: 'შეტყობინებების განახლება ვერ მოხერხდა',
+      mainNotifications: 'მთავარი შეტყობინებები',
+      goalsAchievements: 'მიზნები და მიღწევები',
+      optionalNotifications: 'დამატებითი შეტყობინებები',
+      dailyReminders: 'ყოველდღიური შეხსენებები',
+      dailyRemindersDesc: 'მიიღეთ შეხსენებები განწყობის შესახებ და დღიური ამოცანების შესასრულებლად',
+      weeklyGoals: 'ყოველკვირეული მიზნები',
+      weeklyGoalsDesc: 'მიიღეთ განახლებები თქვენს ყოველკვირეულ პროგრესზე და მიზნებზე',
+      achievementAlerts: 'მიღწევების შეტყობინებები',
+      achievementAlertsDesc: 'მიიღეთ შეტყობინება, როდესაც დაასრულებთ მიზნებს',
+      journalReminders: 'ჟურნალის შეხსენებები',
+      journalRemindersDesc: 'შეხსენებები ჟურნალში ჩაწერისთვის',
+      meditationAlerts: 'მედიტაციის შეხსენებები',
+      meditationAlertsDesc: 'შეხსენებები მედიტაციის პრაქტიკისთვის',
+      motivationalQuotes: 'მოტივაციური ციტატები',
+      motivationalQuotesDesc: 'მიიღეთ ყოველდღიური მოტივაციური ციტატები',
+      systemUpdates: 'სისტემის განახლებები',
+      systemUpdatesDesc: 'მნიშვნელოვანი განახლებები აპლიკაციის შესახებ',
+      marketingEmails: 'მარკეტინგული ელ.ფოსტა',
+      marketingEmailsDesc: 'მიიღეთ სარეკლამო შეტყობინებები და შეთავაზებები'
+    },
   },
 };

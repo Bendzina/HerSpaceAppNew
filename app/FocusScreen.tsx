@@ -1,20 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 export const href = null;
-import { useState } from 'react';
 
-import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  StyleSheet, 
+import { updateProfile } from '@/services/wellnessProfileService';
+import { useRouter } from "expo-router";
+import {
+  Alert,
   Dimensions,
   ScrollView,
-  Alert 
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
-import { useRouter } from "expo-router";
-import { useTheme } from './ThemeContext';
 import { useLanguage } from './LanguageContext';
-import { updateProfile } from '@/services/wellnessProfileService';
+import { useTheme } from './ThemeContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -113,7 +112,11 @@ export default function FocusScreen() {
       Alert.alert('', currentTranslations.selectFocusFirst);
       return;
     }
-    router.push('/MoodScreen');
+    // Pass the selected focus to MoodScreen
+    router.push({
+      pathname: '/MoodScreen',
+      params: { focus: selectedFocus }
+    });
   };
 
   // Dynamic styles based on theme

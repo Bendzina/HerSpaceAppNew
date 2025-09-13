@@ -1,16 +1,23 @@
-import React, { useState } from 'react';
-import { Text, View, ScrollView, StyleSheet, TouchableOpacity, Switch, Alert } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Text, View, ScrollView, StyleSheet, TouchableOpacity, Switch, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from './ThemeContext';
 import { useLanguage } from './LanguageContext';
+import { 
+  getNotificationPreferences, 
+  updateNotificationPreferences,
+  loadPreferencesFromBackend,
+  type NotificationPreferences
+} from '@/services/notificationService';
 
 export default function NotificationsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const { t } = useLanguage();
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Notification settings state
-  const [settings, setSettings] = useState({
+  // Notification settings state with default values
+  const [settings, setSettings] = useState<NotificationPreferences>({
     dailyReminders: true,
     weeklyGoals: true,
     achievementAlerts: false,
@@ -21,38 +28,91 @@ export default function NotificationsScreen() {
     marketingEmails: false,
   });
 
-  const updateSetting = (key: keyof typeof settings) => {
-    setSettings(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
-  };
+  // Load preferences on mount
+  useEffect(() => {
+    const loadPreferences = async () => {
+      try {
+        setIsLoading(true);
+        // Try to load from backend first, fallback to local storage
+        const prefs = await loadPreferencesFromBackend();
+        setSettings(prefs);
+      } catch (error) {
+        console.error('Failed to load notification preferences', error);
+        // Fallback to local storage
+        const localPrefs = await getNotificationPreferences();
+        setSettings(localPrefs);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const resetToDefaults = () => {
+    loadPreferences();
+  }, []);
+
+  // Update a single setting
+  const updateSetting = useCallback(async (key: keyof NotificationPreferences) => {
+    const newValue = !settings[key];
+    const updatedSettings = { ...settings, [key]: newValue };
+    
+    // Optimistic update
+    setSettings(updatedSettings);
+    
+    try {
+      // Update in storage and sync with backend
+      await updateNotificationPreferences(updatedSettings);
+    } catch (error) {
+      console.error('Failed to update notification preference', error);
+      // Revert on error
+      setSettings(prev => ({ ...prev, [key]: !newValue }));
+      Alert.alert('Error', 'Failed to update notification settings');
+    }
+  }, [settings]);
+
+  // Reset all settings to defaults
+  const resetToDefaults = useCallback(async () => {
     Alert.alert(
-      t.notifications.resetTitle,
-      t.notifications.resetMessage,
+      'Reset Settings',
+      'Are you sure you want to reset all notification settings to default?',
       [
-        { text: t.notifications.cancel, style: 'cancel' },
+        { text: 'Cancel', style: 'cancel' },
         { 
-          text: t.notifications.reset, 
+          text: 'Reset', 
           style: 'destructive',
-          onPress: () => setSettings({
-            dailyReminders: true,
-            weeklyGoals: true,
-            achievementAlerts: false,
-            journalReminders: true,
-            meditationAlerts: true,
-            motivationalQuotes: false,
-            systemUpdates: true,
-            marketingEmails: false,
-          })
+          onPress: async () => {
+            const defaultSettings = {
+              dailyReminders: true,
+              weeklyGoals: true,
+              achievementAlerts: false,
+              journalReminders: true,
+              meditationAlerts: true,
+              motivationalQuotes: false,
+              systemUpdates: true,
+              marketingEmails: false,
+            };
+            
+            setSettings(defaultSettings);
+            
+            try {
+              await updateNotificationPreferences(defaultSettings);
+            } catch (error) {
+              console.error('Failed to reset notification preferences', error);
+              Alert.alert('Error', 'Failed to reset notification settings');
+            }
+          }
         },
       ]
     );
-  };
+  }, []);
 
   const styles = createStyles(colors);
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

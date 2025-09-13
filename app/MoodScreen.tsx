@@ -10,7 +10,7 @@ import {
   TextInput,
   Alert 
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { createMoodCheckIn, updateMoodCheckIn, listMoodCheckIns, type EmotionalSupportOption, type MoodCheckIn } from "@/services/moodService";
 import { getProfile } from "@/services/wellnessProfileService";
 import { useTheme } from './ThemeContext';
@@ -63,6 +63,7 @@ export default function MoodScreen() {
   const router = useRouter();
   const { isDark } = useTheme();
   const { language } = useLanguage();
+  const { focus } = useLocalSearchParams<{ focus?: string }>();
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -166,13 +167,20 @@ export default function MoodScreen() {
     }
   };
 
-  const handleContinue = () => {
+  const handleNext = () => {
     if (!selectedMood) {
       Alert.alert('', currentTranslations.selectMoodFirst);
       return;
     }
-    router.push("/NotificationsScreen");
+    
+    if (focus === 'motherhood') {
+      router.push('/motherhood');
+    } else {
+      router.push('/NotificationsScreen');
+    }
   };
+
+  const handleContinue = handleNext;
 
   // Dynamic styles based on theme
   const containerStyle = [

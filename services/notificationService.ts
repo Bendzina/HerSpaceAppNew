@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { authorizedFetch } from './authService';
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -8,6 +9,8 @@ const STORAGE_KEYS = {
   hour: 'reminder_hour',
   minute: 'reminder_minute',
   notificationId: 'reminder_notification_id',
+  preferences: 'notification_preferences',
+  lastSynced: 'notification_preferences_last_synced',
 };
 
 // Configure how notifications behave when received in foreground
@@ -133,6 +136,121 @@ export async function enableReminder(hour: number, minute: number, body?: string
 
 export async function disableReminder(): Promise<void> {
   await cancelDailyReminder();
+}
+
+export type NotificationPreferences = {
+  dailyReminders: boolean;
+  weeklyGoals: boolean;
+  achievementAlerts: boolean;
+  journalReminders: boolean;
+  meditationAlerts: boolean;
+  motivationalQuotes: boolean;
+  systemUpdates: boolean;
+  marketingEmails: boolean;
+};
+
+const DEFAULT_PREFERENCES: NotificationPreferences = {
+  dailyReminders: true,
+  weeklyGoals: true,
+  achievementAlerts: false,
+  journalReminders: true,
+  meditationAlerts: true,
+  motivationalQuotes: false,
+  systemUpdates: true,
+  marketingEmails: false,
+};
+
+export async function getNotificationPreferences(): Promise<NotificationPreferences> {
+  try {
+    const jsonValue = await AsyncStorage.getItem(STORAGE_KEYS.preferences);
+    return jsonValue ? JSON.parse(jsonValue) : { ...DEFAULT_PREFERENCES };
+  } catch (e) {
+    console.error('Failed to load notification preferences', e);
+    return { ...DEFAULT_PREFERENCES };
+  }
+}
+
+export async function updateNotificationPreferences(
+  updates: Partial<NotificationPreferences>
+): Promise<NotificationPreferences> {
+  try {
+    const current = await getNotificationPreferences();
+    const updated = { ...current, ...updates };
+    await AsyncStorage.setItem(STORAGE_KEYS.preferences, JSON.stringify(updated));
+    
+    // Sync with backend in background
+    syncPreferencesWithBackend(updated).catch(console.error);
+    
+    return updated;
+  } catch (e) {
+    console.error('Failed to update notification preferences', e);
+    throw e;
+  }
+}
+
+async function syncPreferencesWithBackend(prefs: NotificationPreferences): Promise<void> {
+  try {
+    // Check if we synced recently (within last 5 minutes)
+    const lastSynced = await AsyncStorage.getItem(STORAGE_KEYS.lastSynced);
+    const lastSyncedTime = lastSynced ? parseInt(lastSynced, 10) : 0;
+    const now = Date.now();
+    
+    if (now - lastSyncedTime < 5 * 60 * 1000) {
+      return; // Skip if synced recently
+    }
+    
+    // Map local preferences to backend format
+    const backendPrefs = {
+      mood_reminder_enabled: prefs.dailyReminders,
+      weekly_goals_enabled: prefs.weeklyGoals,
+      achievement_alerts_enabled: prefs.achievementAlerts,
+      journal_reminder_enabled: prefs.journalReminders,
+      meditation_reminder_enabled: prefs.meditationAlerts,
+      motivational_content_enabled: prefs.motivationalQuotes,
+      system_notifications_enabled: prefs.systemUpdates,
+      marketing_emails_enabled: prefs.marketingEmails,
+    };
+    
+    await authorizedFetch('/notifications/preferences/', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(backendPrefs),
+    });
+    
+    await AsyncStorage.setItem(STORAGE_KEYS.lastSynced, now.toString());
+  } catch (error) {
+    console.error('Failed to sync notification preferences with backend', error);
+    throw error;
+  }
+}
+
+export async function loadPreferencesFromBackend(): Promise<NotificationPreferences> {
+  try {
+    const response = await authorizedFetch('/notifications/preferences/');
+    const backendPrefs = await response.json();
+    
+    // Map backend format to local preferences
+    const localPrefs: NotificationPreferences = {
+      dailyReminders: backendPrefs.mood_reminder_enabled ?? true,
+      weeklyGoals: backendPrefs.weekly_goals_enabled ?? true,
+      achievementAlerts: backendPrefs.achievement_alerts_enabled ?? false,
+      journalReminders: backendPrefs.journal_reminder_enabled ?? true,
+      meditationAlerts: backendPrefs.meditation_reminder_enabled ?? true,
+      motivationalQuotes: backendPrefs.motivational_content_enabled ?? false,
+      systemUpdates: backendPrefs.system_notifications_enabled ?? true,
+      marketingEmails: backendPrefs.marketing_emails_enabled ?? false,
+    };
+    
+    await AsyncStorage.setItem(STORAGE_KEYS.preferences, JSON.stringify(localPrefs));
+    await AsyncStorage.setItem(STORAGE_KEYS.lastSynced, Date.now().toString());
+    
+    return localPrefs;
+  } catch (error) {
+    console.error('Failed to load preferences from backend', error);
+    return getNotificationPreferences(); // Fallback to local storage
+  }
 }
 
 export async function sendTestNotification(body?: string): Promise<void> {

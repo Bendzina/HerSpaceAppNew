@@ -19,6 +19,7 @@ export default function CustomDrawerContent(props: any) {
     { name: '(tabs)', label: t.home, icon: 'home-outline' },
     { name: 'motherhood/index', label: t.motherhood, icon: 'woman-outline' },
     { name: 'rituals', label: t.rituals, icon: 'leaf-outline' },
+    { name: 'community/index', label: 'Community', icon: 'people-outline' },
     { name: 'profile', label: t.profile, icon: 'person-circle-outline' },
     { name: 'HelpScreen', label: t.help, icon: 'help-circle-outline' },
     { name: 'AppPreferencesScreen', label: t.preferences, icon: 'options-outline' },

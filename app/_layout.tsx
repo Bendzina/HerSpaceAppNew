@@ -46,6 +46,13 @@ function InnerDrawer() {
         }}
       />
       <Drawer.Screen
+        name="community/index"
+        options={{
+          title: 'Community',
+          drawerIcon: ({ color, size }) => (<Ionicons name="people-outline" size={size} color={color} />)
+        }}
+      />
+      <Drawer.Screen
         name="rituals"
         options={{
           title: t.rituals,

@@ -91,15 +91,23 @@ export default function RoutinesListScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Stack.Screen
-        options={{
-          title: t.routines,
+      <Stack.Screen 
+        options={({ navigation }) => ({
+          title: t.routines || 'Routines',
+          headerLeft: () => (
+            <TouchableOpacity 
+              onPress={() => navigation.goBack()}
+              style={{ marginLeft: 15 }}
+            >
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
+            </TouchableOpacity>
+          ),
           headerRight: () => (
             <TouchableOpacity onPress={() => router.push('/motherhood/routines/edit' as never)} style={{ paddingHorizontal: 12 }}>
               <Ionicons name="add" size={22} color={colors.text} />
             </TouchableOpacity>
           )
-        }}
+        })}
       />
 
       <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
