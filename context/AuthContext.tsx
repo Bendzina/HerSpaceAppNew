@@ -10,10 +10,16 @@ interface User {
   displayName?: string; // ✅ დამატებული displayName field
 }
 
+interface RegistrationResponse {
+  email: string;
+  message?: string;
+  [key: string]: any;
+}
+
 interface AuthContextType {
   user: User | null;
   login: (username: string, password: string) => Promise<void>;
-  register: (username: string, email: string, password: string) => Promise<void>;
+  register: (username: string, email: string, password: string) => Promise<RegistrationResponse>;
   logout: () => Promise<void>;
   updateUserProfile: (updates: Partial<User>) => Promise<void>; // ✅ ახალი ფუნქცია
   loading: boolean;
@@ -23,7 +29,10 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   login: async () => {},
-  register: async () => {},
+  register: async () => ({
+    email: '',
+    message: 'Auth context not initialized'
+  }),
   logout: async () => {},
   updateUserProfile: async () => {}, // ✅ default value
   loading: false,
@@ -81,10 +90,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const register = async (username: string, email: string, password: string) => {
     try {
       console.log('AuthContext: Attempting registration...', { username, email });
-      await authService.register(username, email, password);
-      console.log('AuthContext: Registration successful, attempting auto-login...');
-      // რეგისტრაციის შემდეგ ავტომატურად ლოგინი
-      await login(username, password);
+      const response = await authService.register(username, email, password);
+      console.log('AuthContext: Registration successful');
+      return response; // Return the response which includes the email
     } catch (error) {
       console.error('AuthContext: Registration error:', error);
       throw error;

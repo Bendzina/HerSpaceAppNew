@@ -4,7 +4,10 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { AuthProvider } from '../context/AuthContext';
+import { AuthProvider, useAuth } from '../context/AuthContext';
+import { useEffect } from 'react';
+import { useRouter } from 'expo-router';
+import { checkEmailVerification } from '../services/authService';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { LanguageProvider, useLanguage } from './LanguageContext';
@@ -17,6 +20,62 @@ function InnerDrawer() {
   const { colors } = useTheme();
   const { language } = useLanguage();
   const t = translations[language] || translations.en;
+  const { user } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    const checkVerification = async () => {
+      if (!user) return;
+      
+      try {
+        // Get current path from the URL
+        const currentPath = new URL(window.location.href).pathname;
+        
+        // Skip verification check for the verify-email screen to prevent infinite loops
+        if (currentPath.includes('verify-email')) return;
+        
+        const response = await checkEmailVerification();
+        if (!response.is_verified) {
+          // Only navigate if we're not already on the verify-email screen
+          if (!currentPath.includes('verify-email')) {
+            router.replace({
+              pathname: '/verify-email',
+              params: { email: user.email }
+            } as any);
+          }
+        } else if (currentPath.includes('verify-email')) {
+          // If user is already verified but on verify-email screen, redirect to home
+          router.replace('/(tabs)');
+        }
+      } catch (error) {
+        console.error('Error checking verification status:', error);
+        // If there's an error, still allow access but log it
+      }
+    };
+
+    // Check verification status immediately and then every 30 seconds
+    checkVerification();
+    const interval = setInterval(checkVerification, 30000);
+    
+    return () => clearInterval(interval);
+  }, [user, router]);
+
+  // Check if we're on the verify-email screen
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+  const isVerifyEmail = pathname.includes('verify-email');
+
+  if (isVerifyEmail) {
+    return (
+      <Drawer.Screen
+        name="verify-email"
+        options={{
+          title: 'Verify Email',
+          headerShown: false,
+          drawerItemStyle: { display: 'none' }
+        }}
+      />
+    );
+  }
 
   return (
     <Drawer
@@ -36,12 +95,12 @@ function InnerDrawer() {
         name="(tabs)"
         options={{ title: 'Home', headerShown: false, drawerItemStyle: { display: 'none' } }}
       />
-
-      {/* Requested menu items only, with icons */}
+  
+      {/* Menu items with icons */}
       <Drawer.Screen
         name="motherhood/index"
         options={{
-          title: t.motherhood,
+          title: t.motherhood || 'Motherhood',
           drawerIcon: ({ color, size }) => (<Ionicons name="woman-outline" size={size} color={color} />)
         }}
       />
@@ -55,105 +114,89 @@ function InnerDrawer() {
       <Drawer.Screen
         name="rituals"
         options={{
-          title: t.rituals,
+          title: t.rituals || 'Rituals',
           drawerIcon: ({ color, size }) => (<Ionicons name="leaf-outline" size={size} color={color} />)
         }}
       />
       <Drawer.Screen
         name="profile"
         options={{
-          title: t.profile,
+          title: t.profile || 'Profile',
           drawerIcon: ({ color, size }) => (<Ionicons name="person-circle-outline" size={size} color={color} />)
         }}
       />
       <Drawer.Screen
         name="HelpScreen"
         options={{
-          title: t.help,
+          title: t.help || 'Help',
           drawerIcon: ({ color, size }) => (<Ionicons name="help-circle-outline" size={size} color={color} />)
         }}
       />
       <Drawer.Screen
         name="AppPreferencesScreen"
         options={{
-          title: t.preferences,
+          title: t.preferences || 'Preferences',
           drawerIcon: ({ color, size }) => (<Ionicons name="options-outline" size={size} color={color} />)
         }}
       />
       <Drawer.Screen
         name="mindful"
         options={{
-          title: t.mindful,
+          title: t.mindful || 'Mindful',
           drawerIcon: ({ color, size }) => (<Ionicons name="medkit-outline" size={size} color={color} />)
         }}
       />
       <Drawer.Screen
         name="SettingsScreen"
         options={{
-          title: t.settings,
+          title: t.settings || 'Settings',
           drawerIcon: ({ color, size }) => (<Ionicons name="settings-outline" size={size} color={color} />)
         }}
       />
       <Drawer.Screen
         name="insights"
         options={{
-          title: t.insights,
+          title: t.insights || 'Insights',
           drawerIcon: ({ color, size }) => (<Ionicons name="bar-chart-outline" size={size} color={color} />)
         }}
       />
       <Drawer.Screen
         name="LoginScreen"
         options={{
-          title: t.login,
+          title: t.login || 'Login',
           drawerIcon: ({ color, size }) => (<Ionicons name="log-in-outline" size={size} color={color} />)
         }}
       />
       <Drawer.Screen
         name="NotificationsScreen"
         options={{
-          title: t.notifications,
+          title: t.notifications || 'Notifications',
           drawerIcon: ({ color, size }) => (<Ionicons name="notifications-outline" size={size} color={color} />)
         }}
       />
-
-      {/* 
-        ✅ Hidden routes completely removed from Drawer.Screen declarations
-        These routes will still work via direct navigation (router.push('/MoodScreen'))
-        but won't appear in the drawer menu at all
-        
-        Removed routes:
-        - ThemeContext
-        - LanguageContext  
-        - MoodScreen
-        - mood
-        - FocusScreen
-        - RegisterScreen
-        - PasswordScreen
-        - +not-found
-      */}
     </Drawer>
   );
 }
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
-  if (!loaded) return null;
+  if (!loaded) {
+    return null;
+  }
 
   return (
-    <ThemeProvider>
-      <LanguageProvider>
-        <AuthProvider>   
-          <SafeAreaProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <ThemeProvider>
+          <LanguageProvider>
+            <StatusBar style="auto" />
             <InnerDrawer />
-            <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-          </SafeAreaProvider>
-        </AuthProvider>
-      </LanguageProvider>
-    </ThemeProvider>
+          </LanguageProvider>
+        </ThemeProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }

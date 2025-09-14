@@ -134,7 +134,19 @@ export async function login(username: string, password: string) {
   }
 }
 
-export async function register(username: string, email: string, password: string) {
+interface RegistrationError {
+  response?: {
+    data: {
+      email?: string[];
+      username?: string[];
+      password?: string[];
+      [key: string]: any;
+    };
+  };
+  message: string;
+}
+
+export async function register(username: string, email: string, password: string): Promise<{ email: string; message?: string; [key: string]: any }> {
   try {
     console.log('authService: Registration attempt...', { username, email });
     const response = await fetch(`${BASE_URL}/users/auth/register/`, {
@@ -144,27 +156,46 @@ export async function register(username: string, email: string, password: string
     });
 
     const data = await response.json();
-    console.log('authService: Registration response:', response.status);
+    console.log('authService: Registration response:', { status: response.status, data });
 
     if (!response.ok) {
-      // ✅ Better error handling
+      // Format error messages from the server
       let errorMessage = 'Registration failed';
-      if (data.username) {
-        errorMessage = `Username: ${data.username[0]}`;
-      } else if (data.email) {
-        errorMessage = `Email: ${data.email[0]}`;
-      } else if (data.password) {
-        errorMessage = `Password: ${data.password[0]}`;
-      } else if (data.detail) {
-        errorMessage = data.detail;
+      const serverErrors = data as { [key: string]: string[] };
+      
+      if (serverErrors.email?.includes('Email already exists')) {
+        errorMessage = 'This email is already registered. Please use a different email or try logging in.';
+      } else if (serverErrors.username?.includes('A user with that username already exists.')) {
+        errorMessage = 'This username is already taken. Please choose a different one.';
+      } else if (serverErrors.password) {
+        errorMessage = serverErrors.password.join(' ');
+      } else if (serverErrors.email) {
+        errorMessage = serverErrors.email.join(' ');
+      } else if (serverErrors.username) {
+        errorMessage = serverErrors.username.join(' ');
       }
-      throw new Error(errorMessage);
+
+      const error: RegistrationError = new Error(errorMessage);
+      error.response = { data };
+      throw error;
     }
 
     return data;
   } catch (error) {
     console.error('authService: Registration error:', error);
-    throw error;
+    
+    // If it's a network error or other fetch error
+    if (error instanceof TypeError) {
+      throw new Error('Network error. Please check your internet connection.');
+    }
+    
+    // If it's our custom error with server response
+    if ((error as RegistrationError).response) {
+      throw error; // Already formatted
+    }
+    
+    // For any other errors
+    throw new Error('An unexpected error occurred during registration. Please try again.');
   }
 }
 
@@ -226,6 +257,42 @@ export async function updateProfile(updates: any, token: string) {
     return parsed ?? raw; // Prefer JSON, otherwise raw (server may return empty body)
   } catch (error) {
     console.error('authService: Profile update error:', error);
+    throw error;
+  }
+}
+
+// Check if email is verified
+export async function checkEmailVerification(): Promise<{ is_verified: boolean }> {
+  try {
+    const response = await authorizedFetch('/auth/check-verification/');
+    const data = await response.json();
+    return data as { is_verified: boolean };
+  } catch (error) {
+    console.error('Error checking email verification:', error);
+    throw error;
+  }
+}
+
+// Resend verification email
+export async function resendVerificationEmail(email: string): Promise<{ detail: string }> {
+  try {
+    const response = await fetch(`${BASE_URL}/auth/resend-verification/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.detail || 'Failed to resend verification email');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error resending verification email:', error);
     throw error;
   }
 }
