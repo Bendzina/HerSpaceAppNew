@@ -1,10 +1,14 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, SafeAreaView, Dimensions } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from '../LanguageContext';
 import { useTheme } from '../ThemeContext';
+
+const { width } = Dimensions.get('window');
 
 const translations = {
   en: {
@@ -118,397 +122,577 @@ export default function ProfileScreen() {
 
   const displayName = user?.displayName || user?.username || t.profile.userName;
 
-  const styles = createStyles(colors, isDark);
-
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Text style={styles.backButtonText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t.profile.title}</Text>
-        <TouchableOpacity 
-          style={styles.settingsIconButton}
-          onPress={() => router.push('/SettingsScreen')}
-        >
-          <View style={styles.settingsIcon}>
-            <Text style={styles.settingsIconText}>⚙</Text>
-          </View>
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#0F0F23' : '#F8F9FA' }]}>
+      {/* Header with gradient background */}
+      <LinearGradient
+        colors={isDark ? ['#1A1A2E', '#16213E', '#0F0F23'] : ['#E8F4FD', '#F0E8FF', '#FFE5F1']}
+        style={styles.headerGradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        {/* Header Navigation */}
+        <View style={styles.headerNav}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => router.back()}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={['#FF6B9D', '#C44569']}
+              style={styles.navButtonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <Ionicons name="arrow-back" size={20} color="#FFF" />
+            </LinearGradient>
+          </TouchableOpacity>
 
-      {/* Profile Info */}
-      <View style={styles.profileInfo}>
-        <TouchableOpacity onPress={pickImage} style={styles.avatarContainer}>
-          {image ? (
-            <Image source={{ uri: image }} style={styles.avatar} />
+          <Text style={styles.headerTitle}>{t.profile.title}</Text>
+
+          <TouchableOpacity 
+            style={styles.settingsButton}
+            onPress={() => router.push('/SettingsScreen')}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={['#667EEA', '#764BA2']}
+              style={styles.navButtonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <Ionicons name="settings" size={20} color="#FFF" />
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+
+        {/* Profile Info */}
+        <View style={styles.profileSection}>
+          <TouchableOpacity onPress={pickImage} style={styles.avatarContainer} activeOpacity={0.9}>
+            <LinearGradient
+              colors={['#FF6B9D', '#C44569', '#F8B500']}
+              style={styles.avatarGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              {image ? (
+                <Image source={{ uri: image }} style={styles.avatarImage} />
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <Text style={styles.avatarPlaceholderText}>👤</Text>
+                </View>
+              )}
+              <View style={styles.cameraIcon}>
+                <LinearGradient
+                  colors={['#667EEA', '#764BA2']}
+                  style={styles.cameraIconGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Ionicons name="camera" size={14} color="#FFF" />
+                </LinearGradient>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+          
+          {/* Name Section with Edit Functionality */}
+          {isEditingName ? (
+            <View style={styles.nameEditContainer}>
+              <View style={[styles.nameInputWrapper, { backgroundColor: 'rgba(255,255,255,0.9)' }]}>
+                <TextInput
+                  style={styles.nameInput}
+                  value={tempName}
+                  onChangeText={setTempName}
+                  placeholder={t.profile.enterName}
+                  placeholderTextColor={colors.textSecondary}
+                  autoFocus
+                  maxLength={50}
+                />
+              </View>
+              <View style={styles.nameEditButtons}>
+                <TouchableOpacity 
+                  style={styles.nameButton}
+                  onPress={handleCancel}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient
+                    colors={['#E2E8F0', '#CBD5E0']}
+                    style={styles.nameButtonGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                  >
+                    <Text style={styles.cancelButtonText}>{t.profile.cancel}</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.nameButton}
+                  onPress={handleSaveName}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient
+                    colors={['#48BB78', '#38A169']}
+                    style={styles.nameButtonGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                  >
+                    <Text style={styles.saveButtonText}>{t.profile.saveName}</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </View>
           ) : (
-            <View style={styles.avatar}>
-              <Text style={styles.avatarPlaceholder}>👤</Text>
+            <View style={styles.nameContainer}>
+              <Text style={styles.userName}>{displayName}</Text>
+              <TouchableOpacity 
+                style={styles.editNameButton}
+                onPress={handleEditName}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={['rgba(255, 107, 157, 0.2)', 'rgba(196, 69, 105, 0.2)']}
+                  style={styles.editNameGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <Ionicons name="pencil" size={14} color="#FF6B9D" />
+                  <Text style={styles.editNameText}>{t.profile.editName}</Text>
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
           )}
-        </TouchableOpacity>
-        
-        {/* Name Section with Edit Functionality */}
-        {isEditingName ? (
-          <View style={styles.nameEditContainer}>
-            <TextInput
-              style={styles.nameInput}
-              value={tempName}
-              onChangeText={setTempName}
-              placeholder={t.profile.enterName}
-              placeholderTextColor={colors.textSecondary}
-              autoFocus
-              maxLength={50}
-            />
-            <View style={styles.nameEditButtons}>
-              <TouchableOpacity 
-                style={[styles.nameButton, styles.cancelButton]}
-                onPress={handleCancel}
-              >
-                <Text style={styles.cancelButtonText}>{t.profile.cancel}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.nameButton, styles.saveButton]}
-                onPress={handleSaveName}
-              >
-                <Text style={styles.saveButtonText}>{t.profile.saveName}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        ) : (
-          <View style={styles.nameContainer}>
-            <Text style={styles.name}>{displayName}</Text>
-            <TouchableOpacity 
-              style={styles.editNameButton}
-              onPress={handleEditName}
+          
+          <Text style={styles.profileSubtitle}>{t.profile.subtitle}</Text>
+          <Text style={styles.profileJoined}>{t.profile.joined}</Text>
+        </View>
+      </LinearGradient>
+
+      <ScrollView style={styles.contentContainer} showsVerticalScrollIndicator={false}>
+        {/* Stats */}
+        <View style={styles.statsContainer}>
+          <View style={[styles.statCard, { backgroundColor: isDark ? '#1A1A2E' : '#FFFFFF' }]}>
+            <LinearGradient
+              colors={['#FF6B9D', '#C44569']}
+              style={styles.statIcon}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
             >
-              <Text style={styles.editNameText}>✏️ {t.profile.editName}</Text>
-            </TouchableOpacity>
+              <Text style={styles.statIconText}>🔥</Text>
+            </LinearGradient>
+            <Text style={[styles.statNumber, { color: isDark ? '#FFFFFF' : '#2D3748' }]}>14</Text>
+            <Text style={[styles.statLabel, { color: isDark ? '#A0AEC0' : '#718096' }]}>{t.profile.dayStreak}</Text>
           </View>
-        )}
-        
-        <Text style={styles.subtitle}>{t.profile.subtitle}</Text>
-        <Text style={styles.subtitle}>{t.profile.joined}</Text>
-      </View>
 
-      {/* Stats */}
-      <View style={styles.statsRow}>
-        <View style={styles.statBox}>
-          <Text style={styles.statNumber}>14</Text>
-          <Text style={styles.statLabel}>{t.profile.dayStreak}</Text>
-        </View>
-        <View style={styles.statBox}>
-          <Text style={styles.statNumber}>32</Text>
-          <Text style={styles.statLabel}>{t.profile.ritualsCompleted}</Text>
-        </View>
-        <View style={styles.statBox}>
-          <Text style={styles.statNumber}>28</Text>
-          <Text style={styles.statLabel}>{t.profile.journalEntries}</Text>
-        </View>
-      </View>
+          <View style={[styles.statCard, { backgroundColor: isDark ? '#1A1A2E' : '#FFFFFF' }]}>
+            <LinearGradient
+              colors={['#667EEA', '#764BA2']}
+              style={styles.statIcon}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Text style={styles.statIconText}>✨</Text>
+            </LinearGradient>
+            <Text style={[styles.statNumber, { color: isDark ? '#FFFFFF' : '#2D3748' }]}>32</Text>
+            <Text style={[styles.statLabel, { color: isDark ? '#A0AEC0' : '#718096' }]}>{t.profile.ritualsCompleted}</Text>
+          </View>
 
-      {/* Settings */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionHeaderText}>{t.profile.settings}</Text>
-      </View>
+          <View style={[styles.statCard, { backgroundColor: isDark ? '#1A1A2E' : '#FFFFFF' }]}>
+            <LinearGradient
+              colors={['#48BB78', '#38A169']}
+              style={styles.statIcon}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Text style={styles.statIconText}>📖</Text>
+            </LinearGradient>
+            <Text style={[styles.statNumber, { color: isDark ? '#FFFFFF' : '#2D3748' }]}>28</Text>
+            <Text style={[styles.statLabel, { color: isDark ? '#A0AEC0' : '#718096' }]}>{t.profile.journalEntries}</Text>
+          </View>
+        </View>
 
-      {/* Settings Items */}
-      <TouchableOpacity 
-        style={styles.settingsItem}
-        onPress={() => router.push('/NotificationsScreen')}
-      >
-        <View style={[styles.iconPlaceholder, styles.notificationIcon]}>
-          <Text style={styles.iconText}>🔔</Text>
+        {/* Settings Section */}
+        <View style={styles.sectionContainer}>
+          <Text style={[styles.sectionTitle, { color: isDark ? '#FFFFFF' : '#2D3748' }]}>{t.profile.settings}</Text>
+
+          {/* Settings Items */}
+          <TouchableOpacity 
+            style={[styles.settingsCard, { backgroundColor: isDark ? '#1A1A2E' : '#FFFFFF' }]}
+            onPress={() => router.push('/NotificationsScreen')}
+            activeOpacity={0.9}
+          >
+            <View style={styles.settingsContent}>
+              <View style={styles.settingsIcon}>
+                <LinearGradient
+                  colors={['#FF6B9D', '#C44569']}
+                  style={styles.settingsIconGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Text style={styles.settingsIconText}>🔔</Text>
+                </LinearGradient>
+              </View>
+              <View style={styles.settingsTextContainer}>
+                <Text style={[styles.settingsLabel, { color: isDark ? '#FFFFFF' : '#2D3748' }]}>{t.profile.notifications}</Text>
+                <Text style={[styles.settingsSubtitle, { color: isDark ? '#A0AEC0' : '#718096' }]}>Manage your notifications</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={isDark ? '#A0AEC0' : '#718096'} />
+            </View>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.settingsCard, { backgroundColor: isDark ? '#1A1A2E' : '#FFFFFF' }]}
+            onPress={() => router.push('/PasswordScreen')}
+            activeOpacity={0.9}
+          >
+            <View style={styles.settingsContent}>
+              <View style={styles.settingsIcon}>
+                <LinearGradient
+                  colors={['#667EEA', '#764BA2']}
+                  style={styles.settingsIconGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Text style={styles.settingsIconText}>🔒</Text>
+                </LinearGradient>
+              </View>
+              <View style={styles.settingsTextContainer}>
+                <Text style={[styles.settingsLabel, { color: isDark ? '#FFFFFF' : '#2D3748' }]}>{t.profile.accountManagement}</Text>
+                <Text style={[styles.settingsSubtitle, { color: isDark ? '#A0AEC0' : '#718096' }]}>Security & privacy settings</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={isDark ? '#A0AEC0' : '#718096'} />
+            </View>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.settingsCard, { backgroundColor: isDark ? '#1A1A2E' : '#FFFFFF' }]}
+            onPress={() => router.push('/HelpScreen')}
+            activeOpacity={0.9}
+          >
+            <View style={styles.settingsContent}>
+              <View style={styles.settingsIcon}>
+                <LinearGradient
+                  colors={['#F8B500', '#F39C12']}
+                  style={styles.settingsIconGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Text style={styles.settingsIconText}>❓</Text>
+                </LinearGradient>
+              </View>
+              <View style={styles.settingsTextContainer}>
+                <Text style={[styles.settingsLabel, { color: isDark ? '#FFFFFF' : '#2D3748' }]}>{t.profile.helpSupport}</Text>
+                <Text style={[styles.settingsSubtitle, { color: isDark ? '#A0AEC0' : '#718096' }]}>Get help and support</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={isDark ? '#A0AEC0' : '#718096'} />
+            </View>
+          </TouchableOpacity>
         </View>
-        <Text style={styles.settingsLabel}>{t.profile.notifications}</Text>
-        <View style={styles.arrowPlaceholder}>
-          <Text style={styles.arrowText}>›</Text>
-        </View>
-      </TouchableOpacity>
-      
-      <TouchableOpacity 
-        style={styles.settingsItem}
-        onPress={() => router.push('/PasswordScreen')}
-      >
-        <View style={[styles.iconPlaceholder, styles.accountIcon]}>
-          <Text style={styles.iconText}>🔒</Text>
-        </View>
-        <Text style={styles.settingsLabel}>{t.profile.accountManagement}</Text>
-        <View style={styles.arrowPlaceholder}>
-          <Text style={styles.arrowText}>›</Text>
-        </View>
-      </TouchableOpacity>
-      
-      <TouchableOpacity 
-        style={styles.settingsItem}
-        onPress={() => router.push('/HelpScreen')}
-      >
-        <View style={[styles.iconPlaceholder, styles.helpIcon]}>
-          <Text style={styles.iconText}>❓</Text>
-        </View>
-        <Text style={styles.settingsLabel}>{t.profile.helpSupport}</Text>
-        <View style={styles.arrowPlaceholder}>
-          <Text style={styles.arrowText}>›</Text>
-        </View>
-      </TouchableOpacity>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
-const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: colors.background
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
   },
-  contentContainer: { 
-    paddingBottom: 30 
+  headerGradient: {
+    paddingTop: 20,
+    paddingBottom: 40,
+    paddingHorizontal: 24,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  header: {
+  headerNav: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 50,
-    paddingBottom: 12,
-    paddingHorizontal: 16,
-    backgroundColor: colors.background,
-    position: 'relative',
+    justifyContent: 'space-between',
+    marginBottom: 30,
   },
   backButton: {
-    position: 'absolute',
-    left: 16,
-    padding: 8,
     borderRadius: 20,
-    backgroundColor: colors.surface,
+    shadowColor: '#FF6B9D',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  backButtonText: {
-    fontSize: 24,
-    color: colors.text,
-    fontWeight: 'bold',
+  settingsButton: {
+    borderRadius: 20,
+    shadowColor: '#667EEA',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  navButtonGradient: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.text,
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#2D3748',
     textAlign: 'center',
   },
-  settingsIconButton: {
-    position: 'absolute',
-    right: 16,
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
+  profileSection: {
+    alignItems: 'center',
   },
-  settingsIcon: {
+  avatarContainer: {
+    marginBottom: 20,
+    borderRadius: 70,
+    shadowColor: '#FF6B9D',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  avatarGradient: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    padding: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  avatarImage: {
+    width: 132,
+    height: 132,
+    borderRadius: 66,
+  },
+  avatarPlaceholder: {
+    width: 132,
+    height: 132,
+    borderRadius: 66,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarPlaceholderText: {
+    fontSize: 48,
+  },
+  cameraIcon: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    borderRadius: 16,
+    shadowColor: '#667EEA',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  cameraIconGradient: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  settingsIconText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-  },
-  profileInfo: {
-    alignItems: 'center',
-    marginTop: 24,
-    marginBottom: 16,
-  },
-  avatarContainer: {
-    marginBottom: 12,
-  },
-  avatar: {
-    width: 128,
-    height: 128,
-    borderRadius: 64,
-    backgroundColor: colors.primary + '20',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: colors.primary + '30',
-  },
-  avatarPlaceholder: {
-    fontSize: 48,
-    color: colors.primary,
   },
   nameContainer: {
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
-  name: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: colors.text,
+  userName: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#2D3748',
     marginBottom: 8,
+    textAlign: 'center',
   },
   editNameButton: {
+    borderRadius: 20,
+  },
+  editNameGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: colors.primary + '10',
     borderWidth: 1,
-    borderColor: colors.primary + '30',
+    borderColor: 'rgba(255, 107, 157, 0.3)',
   },
   editNameText: {
     fontSize: 14,
-    color: colors.primary,
-    fontWeight: '500',
+    color: '#FF6B9D',
+    fontWeight: '600',
+    marginLeft: 6,
   },
   nameEditContainer: {
     alignItems: 'center',
-    width: '80%',
-    marginBottom: 8,
-  },
-  nameInput: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-    backgroundColor: colors.card,
-    borderWidth: 2,
-    borderColor: colors.primary,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    textAlign: 'center',
     width: '100%',
     marginBottom: 12,
+  },
+  nameInputWrapper: {
+    borderRadius: 15,
+    borderWidth: 2,
+    borderColor: '#FF6B9D',
+    shadowColor: '#FF6B9D',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+    marginBottom: 12,
+  },
+  nameInput: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#2D3748',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    textAlign: 'center',
+    minWidth: 200,
   },
   nameEditButtons: {
     flexDirection: 'row',
     gap: 12,
   },
   nameButton: {
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  nameButtonGradient: {
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,
     minWidth: 80,
     alignItems: 'center',
   },
-  saveButton: {
-    backgroundColor: colors.primary,
-  },
-  cancelButton: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
   saveButtonText: {
-    color: '#fff',
+    color: '#FFF',
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 16,
   },
   cancelButtonText: {
-    color: colors.textSecondary,
+    color: '#4A5568',
     fontWeight: '600',
-    fontSize: 14,
-  },
-  subtitle: {
     fontSize: 16,
-    color: colors.textSecondary,
-    marginBottom: 2,
+  },
+  profileSubtitle: {
+    fontSize: 16,
+    color: '#718096',
+    marginBottom: 4,
     textAlign: 'center',
+    fontWeight: '500',
   },
-  statsRow: {
+  profileJoined: {
+    fontSize: 14,
+    color: '#A0AEC0',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  contentContainer: {
+    flex: 1,
+    paddingTop: 24,
+  },
+  statsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginHorizontal: 20,
-    marginBottom: 24,
+    paddingHorizontal: 24,
     gap: 12,
+    marginBottom: 32,
   },
-  statBox: {
+  statCard: {
     flex: 1,
     alignItems: 'center',
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-    shadowColor: colors.shadow,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 157, 0.1)',
+  },
+  statIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  statIconText: {
+    fontSize: 18,
   },
   statNumber: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.primary,
+    fontSize: 24,
+    fontWeight: '700',
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: colors.textSecondary,
+    fontWeight: '600',
     textAlign: 'center',
-    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  sectionHeader: {
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 8,
+  sectionContainer: {
+    paddingHorizontal: 24,
   },
-  sectionHeaderText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.text,
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 16,
   },
-  settingsItem: {
+  settingsCard: {
+    borderRadius: 20,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 157, 0.1)',
+  },
+  settingsContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    height: 64,
-    backgroundColor: colors.card,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    marginHorizontal: 16,
-    marginVertical: 4,
-    borderRadius: 12,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    padding: 20,
   },
-  iconPlaceholder: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+  settingsIcon: {
     marginRight: 16,
+    borderRadius: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  settingsIconGradient: {
+    width: 50,
+    height: 50,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  notificationIcon: {
-    backgroundColor: colors.primary + '20',
+  settingsIconText: {
+    fontSize: 22,
   },
-  accountIcon: {
-    backgroundColor: colors.success + '20',
-  },
-  helpIcon: {
-    backgroundColor: colors.warning + '20',
-  },
-  iconText: {
-    fontSize: 20,
+  settingsTextContainer: {
+    flex: 1,
   },
   settingsLabel: {
-    flex: 1,
-    fontSize: 16,
-    color: colors.text,
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  settingsSubtitle: {
+    fontSize: 14,
     fontWeight: '500',
-  },
-  arrowPlaceholder: {
-    width: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  arrowText: {
-    fontSize: 20,
-    color: colors.textSecondary,
-    fontWeight: 'bold',
   },
 });
