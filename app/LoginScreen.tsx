@@ -1,87 +1,406 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from "expo-router";
-import { useTheme } from "./ThemeContext";
+import React, { useState } from "react";
+import {
+  Alert,
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from "react-native";
+import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "./LanguageContext";
-import { useAuth } from "../context/AuthContext";  // ✅ აქედან
+import { useTheme } from "./ThemeContext";
+
+const { width, height } = Dimensions.get('window');
 
 export default function LoginScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { language } = useLanguage();
-  const { login } = useAuth();  // ✅ Context-ის login
+  const { login } = useAuth();
   const router = useRouter();
-
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert(language === "ka" ? "შეცდომა" : "Error",
-                  language === "ka" ? "შეავსე ყველა ველი!" : "Please fill in all fields!");
+      Alert.alert(
+        language === "ka" ? "შეცდომა" : "Error",
+        language === "ka" ? "შეავსე ყველა ველი!" : "Please fill in all fields!"
+      );
       return;
     }
 
     try {
       setLoading(true);
-      await login(email, password); // ✅ Context-ის ფუნქცია
-
-      Alert.alert(language === "ka" ? "მოგესალმები 🌸" : "Welcome 🌸",
-                  language === "ka" ? "წარმატებით შეხვედი!" : "You logged in successfully!");
-      router.replace("/(tabs)");
-    } catch (error) {
-      Alert.alert(language === "ka" ? "შეცდომა" : "Error",
-                  language === "ka" ? "არასწორი მონაცემები" : "Invalid credentials");
+      await login(email, password);
+      Alert.alert(
+        language === "ka" ? "მოგესალმები 🌸" : "Welcome 🌸",
+        language === "ka" ? "წარმატებით შეხვედი!" : "You logged in successfully!",
+        [
+          {
+            text: language === "ka" ? "კარგი" : "OK",
+            onPress: () => router.replace("/(tabs)")
+          }
+        ]
+      );
+    } catch (error: any) {
+      console.error('Login error:', error);
+      const errorMessage = error.message === 'No active account found with the given credentials'
+        ? language === "ka" ? "არასწორი ელ-ფოსტა ან პაროლი" : "Incorrect email or password"
+        : error.message || (language === "ka" ? "შეცდომა შესვლისას" : "Error during login");
+      
+      Alert.alert(
+        language === "ka" ? "შეცდომა" : "Error",
+        errorMessage
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Text style={[styles.title, { color: colors.text }]}>Her Space</Text>
-
-      <TextInput
-        style={[styles.input, { borderColor: colors.border, color: colors.text }]}
-        placeholder={language === "ka" ? "ელ-ფოსტა" : "Email"}
-        placeholderTextColor={colors.textSecondary}
-        value={email}
-        onChangeText={setEmail}
-      />
-
-      <TextInput
-        style={[styles.input, { borderColor: colors.border, color: colors.text }]}
-        placeholder={language === "ka" ? "პაროლი" : "Password"}
-        placeholderTextColor={colors.textSecondary}
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-
-      <TouchableOpacity
-        style={[styles.button, { backgroundColor: colors.primary }]}
-        onPress={handleLogin}
-        disabled={loading}
+    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#0F0F23' : '#F8F9FA' }]}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.keyboardContainer}
       >
-        <Text style={styles.buttonText}>
-          {loading ? (language === "ka" ? "ვცდილობ..." : "Loading...") 
-                   : (language === "ka" ? "შესვლა" : "Login")}
-        </Text>
-      </TouchableOpacity>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          {/* Header with gradient background */}
+          <LinearGradient
+            colors={isDark ? ['#1A1A2E', '#16213E', '#0F0F23'] : ['#E8F4FD', '#F0E8FF', '#FFE5F1']}
+            style={styles.headerGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            {/* Logo Section */}
+            <View style={styles.logoSection}>
+              <LinearGradient
+                colors={['#FF6B9D', '#C44569', '#F8B500']}
+                style={styles.logoContainer}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Text style={styles.logoEmoji}>🌸</Text>
+              </LinearGradient>
+              
+              <Text style={styles.appTitle}>Her Space</Text>
+              <Text style={styles.appSubtitle}>
+                {language === "ka" ? "შენი პირადი სივრცე ✨" : "Your Personal Space ✨"}
+              </Text>
+            </View>
+          </LinearGradient>
 
-      <TouchableOpacity onPress={() => router.push("./RegisterScreen")}>
-        <Text style={{ color: colors.primary, marginTop: 20 }}>
-          {language === "ka" ? "არ გაქვს ანგარიში? რეგისტრაცია" : "No account? Register"}
-        </Text>
-      </TouchableOpacity>
-    </View>
+          {/* Login Form */}
+          <View style={styles.formContainer}>
+            <View style={styles.formHeader}>
+              <Text style={[styles.formTitle, { color: isDark ? '#FFFFFF' : '#2D3748' }]}>
+                {language === "ka" ? "კეთილი იყოს შენი დაბრუნება" : "Welcome Back"}
+              </Text>
+              <Text style={[styles.formSubtitle, { color: isDark ? '#A0AEC0' : '#718096' }]}>
+                {language === "ka" ? "შედი შენს ანგარიშში" : "Sign in to your account"}
+              </Text>
+            </View>
+
+            {/* Email Input */}
+            <View style={styles.inputContainer}>
+              <Text style={[styles.inputLabel, { color: isDark ? '#E2E8F0' : '#4A5568' }]}>
+                {language === "ka" ? "ელ-ფოსტა" : "Email"}
+              </Text>
+              <View style={[
+                styles.inputWrapper,
+                { 
+                  backgroundColor: isDark ? '#1A1A2E' : '#FFFFFF',
+                  borderColor: focusedInput === 'email' ? '#FF6B9D' : (isDark ? '#2D3748' : '#E2E8F0')
+                }
+              ]}>
+                <Ionicons 
+                  name="mail" 
+                  size={20} 
+                  color={focusedInput === 'email' ? '#FF6B9D' : (isDark ? '#A0AEC0' : '#718096')} 
+                />
+                <TextInput
+                  style={[styles.input, { color: isDark ? '#FFFFFF' : '#2D3748' }]}
+                  placeholder={language === "ka" ? "შეიყვანე შენი ელ-ფოსტა" : "Enter your email"}
+                  placeholderTextColor={isDark ? '#718096' : '#A0AEC0'}
+                  value={email}
+                  onChangeText={setEmail}
+                  onFocus={() => setFocusedInput('email')}
+                  onBlur={() => setFocusedInput(null)}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+            </View>
+
+            {/* Password Input */}
+            <View style={styles.inputContainer}>
+              <Text style={[styles.inputLabel, { color: isDark ? '#E2E8F0' : '#4A5568' }]}>
+                {language === "ka" ? "პაროლი" : "Password"}
+              </Text>
+              <View style={[
+                styles.inputWrapper,
+                { 
+                  backgroundColor: isDark ? '#1A1A2E' : '#FFFFFF',
+                  borderColor: focusedInput === 'password' ? '#FF6B9D' : (isDark ? '#2D3748' : '#E2E8F0')
+                }
+              ]}>
+                <Ionicons 
+                  name="lock-closed" 
+                  size={20} 
+                  color={focusedInput === 'password' ? '#FF6B9D' : (isDark ? '#A0AEC0' : '#718096')} 
+                />
+                <TextInput
+                  style={[styles.input, { color: isDark ? '#FFFFFF' : '#2D3748' }]}
+                  placeholder={language === "ka" ? "შეიყვანე შენი პაროლი" : "Enter your password"}
+                  placeholderTextColor={isDark ? '#718096' : '#A0AEC0'}
+                  value={password}
+                  onChangeText={setPassword}
+                  onFocus={() => setFocusedInput('password')}
+                  onBlur={() => setFocusedInput(null)}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <TouchableOpacity 
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.passwordToggle}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons 
+                    name={showPassword ? "eye-off" : "eye"} 
+                    size={20} 
+                    color={isDark ? '#A0AEC0' : '#718096'} 
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Login Button */}
+            <TouchableOpacity
+              style={[styles.loginButton, { opacity: loading ? 0.7 : 1 }]}
+              onPress={handleLogin}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={['#FF6B9D', '#C44569']}
+                style={styles.buttonGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                {loading ? (
+                  <View style={styles.loadingContainer}>
+                    <Text style={styles.buttonText}>
+                      {language === "ka" ? "ვცდილობ..." : "Loading..."}
+                    </Text>
+                  </View>
+                ) : (
+                  <Text style={styles.buttonText}>
+                    {language === "ka" ? "შესვლა" : "Sign In"}
+                  </Text>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Register Link */}
+            <View style={styles.registerContainer}>
+              <Text style={[styles.registerText, { color: isDark ? '#A0AEC0' : '#718096' }]}>
+                {language === "ka" ? "არ გაქვს ანგარიში?" : "Don't have an account?"}
+              </Text>
+              <TouchableOpacity 
+                onPress={() => router.push("./RegisterScreen")}
+                activeOpacity={0.7}
+              >
+                <LinearGradient
+                  colors={['#667EEA', '#764BA2']}
+                  style={styles.registerLinkGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <Text style={styles.registerLinkText}>
+                    {language === "ka" ? "რეგისტრაცია" : "Sign Up"}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", padding: 20 },
-  title: { fontSize: 28, fontWeight: "700", textAlign: "center", marginBottom: 40 },
-  input: { borderWidth: 1, borderRadius: 10, padding: 15, marginBottom: 15, fontSize: 16 },
-  button: { padding: 15, borderRadius: 10, alignItems: "center" },
-  buttonText: { color: "#fff", fontSize: 18, fontWeight: "600" },
+  container: {
+    flex: 1,
+  },
+  keyboardContainer: {
+    flex: 1,
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    minHeight: height,
+  },
+  headerGradient: {
+    paddingTop: 40,
+    paddingBottom: 60,
+    paddingHorizontal: 24,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  logoSection: {
+    alignItems: 'center',
+    marginTop: 40,
+  },
+  logoContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+    shadowColor: '#FF6B9D',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  logoEmoji: {
+    fontSize: 48,
+  },
+  appTitle: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#2D3748',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  appSubtitle: {
+    fontSize: 16,
+    color: '#718096',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  formContainer: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 40,
+    paddingBottom: 24,
+  },
+  formHeader: {
+    marginBottom: 32,
+    alignItems: 'center',
+  },
+  formTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  formSubtitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  inputContainer: {
+    marginBottom: 24,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '500',
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+  },
+  passwordToggle: {
+    padding: 8,
+  },
+  loginButton: {
+    marginTop: 16,
+    marginBottom: 32,
+    borderRadius: 20,
+    shadowColor: '#FF6B9D',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  buttonGradient: {
+    paddingVertical: 18,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  registerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  registerText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  registerLinkGradient: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  registerLinkText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });

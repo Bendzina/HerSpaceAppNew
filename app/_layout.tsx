@@ -31,10 +31,12 @@ function InnerDrawer() {
         // Get current path from the URL
         const currentPath = new URL(window.location.href).pathname;
         
-        // Skip verification check for the verify-email screen to prevent infinite loops
-        if (currentPath.includes('verify-email')) return;
+        // Skip verification check for the verify-email screen and login page to prevent infinite loops
+        if (currentPath.includes('verify-email') || currentPath.includes('LoginScreen')) return;
         
-        const response = await checkEmailVerification();
+        if (!user?.email) return; // Skip if no user email
+        
+        const response = await checkEmailVerification(user.email);
         if (!response.is_verified) {
           // Only navigate if we're not already on the verify-email screen
           if (!currentPath.includes('verify-email')) {

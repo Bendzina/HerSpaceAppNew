@@ -64,26 +64,43 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const login = async (username: string, password: string) => {
     try {
       console.log('AuthContext: Attempting login...', { username });
+      setLoading(true);
+      
+      // Try to login with the provided credentials
       const data = await authService.login(username, password);
       
-      // Token-ები შენახე
+      // Store tokens
       await AsyncStorage.setItem("access_token", data.access);
       await AsyncStorage.setItem("refresh_token", data.refresh);
       
-      // User data მიიღე და შენახე
-      if (data.user) {
-        await AsyncStorage.setItem("user_data", JSON.stringify(data.user));
-        setUser(data.user);
-      } else {
-        // თუ login response-ში user data არ არის, ცალკე მოითხოვე
-        const userInfo = await authService.getUserInfo(data.access);
-        await AsyncStorage.setItem("user_data", JSON.stringify(userInfo));
-        setUser(userInfo);
+      // Handle user data
+      let userData = data.user;
+      
+      // If user data wasn't included in the login response, fetch it separately
+      if (!userData && data.access) {
+        console.log('Fetching user data separately...');
+        userData = await authService.getUserInfo(data.access);
       }
-      console.log('AuthContext: Login successful');
+      
+      if (userData) {
+        console.log('Storing user data:', userData);
+        await AsyncStorage.setItem("user_data", JSON.stringify(userData));
+        setUser(userData);
+        console.log('AuthContext: Login successful');
+      } else {
+        console.error('No user data received after login');
+        throw new Error('Login successful but could not retrieve user information');
+      }
     } catch (error) {
       console.error('AuthContext: Login error:', error);
+      // Clear any partial state on error
+      await AsyncStorage.removeItem("access_token");
+      await AsyncStorage.removeItem("refresh_token");
+      await AsyncStorage.removeItem("user_data");
+      setUser(null);
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 

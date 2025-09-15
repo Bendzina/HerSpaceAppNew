@@ -37,7 +37,8 @@ export default function VerifyEmailScreen() {
       }
 
       try {
-        const response = await authService.checkEmailVerification();
+        
+        const response = await authService.checkEmailVerification(email);
         if (isMounted) {
           if (response.is_verified) {
             setVerificationStatus('verified');
