@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const BASE_URL = 'http://192.168.100.4:8000';
+const BASE_URL = 'http://192.168.100.4:8000/api';
 
 // --- Auth failure notifications (for auto-logout) ---
 const authFailureHandlers = new Set<() => void>();
@@ -25,7 +25,7 @@ async function refreshAccessToken(): Promise<string> {
   const refresh = await AsyncStorage.getItem("refresh_token");
   if (!refresh) throw new Error('No refresh token');
 
-  const resp = await fetch(`http://192.168.100.4:8000/api/token/refresh/`, {
+  const resp = await fetch(`${BASE_URL}/token/refresh/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refresh }),
@@ -113,26 +113,8 @@ export async function login(username: string, password: string) {
   try {
     console.log('authService: Login attempt...', { username });
     
-    // First check if the email exists and is verified
-    try {
-      const verificationCheck = await checkEmailVerification(username);
-      console.log('Email verification check:', verificationCheck);
-      
-      if (!verificationCheck.exists) {
-        throw new Error('No account found with this email. Please register first.');
-      }
-      
-      if (!verificationCheck.is_verified) {
-        throw new Error('Please verify your email before logging in. Check your email for the verification link.');
-      }
-    } catch (error) {
-      console.error('Verification check error:', error);
-      // Re-throw the error to be handled by the caller
-      throw error;
-    }
-    
-    // Proceed with login attempt
-    const response = await fetch(`http://192.168.100.4:8000/api/token/`, {
+    // First try to authenticate
+    const response = await fetch(`${BASE_URL}/token/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
@@ -142,45 +124,34 @@ export async function login(username: string, password: string) {
     console.log('authService: Login response:', response.status, data);
 
     if (!response.ok) {
-      let errorMessage = data.detail || data.message || "Login failed";
-      
-      // Provide more specific error messages
+      // If unauthorized, check if it's because email is not verified
       if (response.status === 401) {
-        if (data.detail?.includes('No active account')) {
-          // Check if the account exists but is not active
-          errorMessage = 'Your account is not active. Please contact support.';
-        } else if (data.detail?.includes('credentials were not provided')) {
-          errorMessage = 'Please enter your username and password';
-        } else if (data.detail?.includes('Unable to log in')) {
-          errorMessage = 'Invalid username or password';
+        const verificationCheck = await checkEmailVerification(username);
+        if (verificationCheck.exists && !verificationCheck.is_verified) {
+          throw new Error('Please verify your email before logging in. Check your email for the verification link.');
         }
+      }
+      
+      // Handle other error cases
+      let errorMessage = data.detail || data.message || "Login failed";
+      if (data.detail?.includes('No active account')) {
+        errorMessage = 'No account found with these credentials. Please register first.';
+      } else if (data.detail?.includes('credentials were not provided')) {
+        errorMessage = 'Please enter your username and password';
       }
       
       throw new Error(errorMessage);
     }
 
-    // ✅ Store tokens
-    await AsyncStorage.setItem("access_token", data.access);
-    await AsyncStorage.setItem("refresh_token", data.refresh);
+    // If we get here, login was successful
+    // Store the tokens and return user data
+    const { access, refresh } = data;
+    await AsyncStorage.setItem('access_token', access);
+    await AsyncStorage.setItem('refresh_token', refresh);
     
-    // Store user data
-    const userResponse = await fetch(`${BASE_URL}/api/users/me/`, {
-      headers: {
-        'Authorization': `Bearer ${data.access}`,
-      },
-    });
-    
-    if (userResponse.ok) {
-      const userData = await userResponse.json();
-      console.log('User data received:', userData);
-      await AsyncStorage.setItem('user_data', JSON.stringify(userData));
-      return { ...data, user: userData }; // Return both tokens and user data
-    } else {
-      console.error('Failed to fetch user data:', await userResponse.text());
-      throw new Error('Logged in but failed to load user profile');
-    }
+    return { access, refresh };
   } catch (error) {
-    console.error('authService: Login error:', error);
+    console.error('Login error:', error);
     throw error;
   }
 }
@@ -200,7 +171,7 @@ interface RegistrationError {
 export async function register(username: string, email: string, password: string): Promise<{ email: string; message?: string; [key: string]: any }> {
   try {
     console.log('authService: Registration attempt...', { username, email });
-    const response = await fetch(`http://192.168.100.4:8000/api/users/auth/register/`, {
+    const response = await fetch(`${BASE_URL}/users/auth/register/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, email, password }),
@@ -252,7 +223,7 @@ export async function register(username: string, email: string, password: string
 
 export async function getUserInfo(token: string) {
   try {
-    const response = await fetchWithAuth(`http://192.168.100.4:8000/api/users/me/`, {
+    const response = await fetchWithAuth(`${BASE_URL}/users/me/`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -276,7 +247,7 @@ export async function updateProfile(updates: any, token: string) {
   try {
     console.log('authService: Updating profile...', updates);
     
-    const response = await fetchWithAuth(`http://192.168.100.4:8000/api/users/me/`, {
+    const response = await fetchWithAuth(`${BASE_URL}/users/me/`, {
       method: 'PATCH', // ან PUT შენი Django API-ის მიხედვით
       headers: {
         'Content-Type': 'application/json',
@@ -315,7 +286,7 @@ export async function updateProfile(updates: any, token: string) {
 // Check if email is verified
 export async function checkEmailVerification(email: string): Promise<{ is_verified: boolean; exists: boolean }> {
   try {
-    const response = await fetch(`http://192.168.100.4:8000/api/users/auth/check-email/?email=${encodeURIComponent(email)}`);
+    const response = await fetch(`${BASE_URL}/users/auth/check-email/?email=${encodeURIComponent(email)}`);
     
     if (!response.ok) {
       throw new Error('Failed to check email verification status');
@@ -333,9 +304,9 @@ export async function checkEmailVerification(email: string): Promise<{ is_verifi
 }
 
 // Resend verification email
-export async function resendVerificationEmail(email: string): Promise<{ detail: string }> {
+export async function resendVerificationEmail(email: string): Promise<void> {
   try {
-    const response = await fetch(`http://192.168.100.4:8000/api/users/auth/resend-verification/`, {
+    const response = await fetch(`${BASE_URL}/users/auth/resend-verification/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -344,7 +315,7 @@ export async function resendVerificationEmail(email: string): Promise<{ detail: 
     });
 
     const data = await response.json();
-
+    
     if (!response.ok) {
       throw new Error(data.detail || 'Failed to resend verification email');
     }

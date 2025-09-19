@@ -1,10 +1,11 @@
-import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, SafeAreaView, Dimensions } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from "@/context/AuthContext";
+import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Alert, Dimensions, Image, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ImageSourcePropType } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../LanguageContext';
 import { useTheme } from '../ThemeContext';
 
@@ -64,15 +65,56 @@ const translations = {
 };
 
 export default function ProfileScreen() {
+  const { user, updateUserProfile } = useAuth();
   const [image, setImage] = useState<string | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState('');
+  const [stats, setStats] = useState({
+    dayStreak: 0,
+    ritualsCompleted: 0,
+    journalEntries: 0
+  });
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { isDark, colors } = useTheme();
   const { language } = useLanguage();
-  const { user, updateUserProfile } = useAuth();
+  
+  // Type for profile updates
+  type ProfileUpdates = {
+    displayName?: string;
+    // Add other updateable fields here
+  };
   
   const t = translations[language] || translations.en;
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://192.168.100.4:8000/api'}/users/stats/`, {
+          headers: {
+            'Authorization': `Bearer ${await AsyncStorage.getItem('access_token')}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setStats({
+            dayStreak: data.day_streak || 0,
+            ritualsCompleted: data.rituals_completed || 0,
+            journalEntries: data.journal_entries || 0
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
 
   const pickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -82,15 +124,25 @@ export default function ProfileScreen() {
       return;
     }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 1,
+      });
 
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      setImage(result.assets[0].uri);
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const imageUri = result.assets[0].uri;
+        setImage(imageUri);
+        
+        // Here you would typically upload the image to your server
+        // and update the user's profile with the new image URL
+        // await updateUserProfile({ profileImage: imageUri });
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert(t.profile.errorTitle, 'Failed to select image');
     }
   };
 
@@ -106,7 +158,8 @@ export default function ProfileScreen() {
     }
 
     try {
-      await updateUserProfile({ displayName: tempName.trim() });
+      const updates: ProfileUpdates = { displayName: tempName.trim() };
+      await updateUserProfile(updates);
       setIsEditingName(false);
       Alert.alert(t.profile.successTitle, t.profile.nameUpdated);
     } catch (error) {
@@ -176,10 +229,16 @@ export default function ProfileScreen() {
               end={{ x: 1, y: 1 }}
             >
               {image ? (
-                <Image source={{ uri: image }} style={styles.avatarImage} />
+                <Image 
+                  source={{ uri: image }} 
+                  style={styles.avatarImage} 
+                  resizeMode="cover"
+                />
               ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <Text style={styles.avatarPlaceholderText}>👤</Text>
+                <View style={[styles.avatarPlaceholder, { backgroundColor: isDark ? '#2D3748' : '#E2E8F0' }]}>
+                  <Text style={[styles.avatarPlaceholderText, { color: isDark ? '#E2E8F0' : '#4A5568' }]}>
+                    {displayName.charAt(0).toUpperCase()}
+                  </Text>
                 </View>
               )}
               <View style={styles.cameraIcon}>
@@ -278,7 +337,9 @@ export default function ProfileScreen() {
             >
               <Text style={styles.statIconText}>🔥</Text>
             </LinearGradient>
-            <Text style={[styles.statNumber, { color: isDark ? '#FFFFFF' : '#2D3748' }]}>14</Text>
+            <Text style={[styles.statNumber, { color: isDark ? '#FFFFFF' : '#2D3748' }]}>
+              {isLoading ? '...' : stats.dayStreak}
+            </Text>
             <Text style={[styles.statLabel, { color: isDark ? '#A0AEC0' : '#718096' }]}>{t.profile.dayStreak}</Text>
           </View>
 
@@ -291,7 +352,9 @@ export default function ProfileScreen() {
             >
               <Text style={styles.statIconText}>✨</Text>
             </LinearGradient>
-            <Text style={[styles.statNumber, { color: isDark ? '#FFFFFF' : '#2D3748' }]}>32</Text>
+            <Text style={[styles.statNumber, { color: isDark ? '#FFFFFF' : '#2D3748' }]}>
+              {isLoading ? '...' : stats.ritualsCompleted}
+            </Text>
             <Text style={[styles.statLabel, { color: isDark ? '#A0AEC0' : '#718096' }]}>{t.profile.ritualsCompleted}</Text>
           </View>
 
@@ -304,7 +367,9 @@ export default function ProfileScreen() {
             >
               <Text style={styles.statIconText}>📖</Text>
             </LinearGradient>
-            <Text style={[styles.statNumber, { color: isDark ? '#FFFFFF' : '#2D3748' }]}>28</Text>
+            <Text style={[styles.statNumber, { color: isDark ? '#FFFFFF' : '#2D3748' }]}>
+              {isLoading ? '...' : stats.journalEntries}
+            </Text>
             <Text style={[styles.statLabel, { color: isDark ? '#A0AEC0' : '#718096' }]}>{t.profile.journalEntries}</Text>
           </View>
         </View>

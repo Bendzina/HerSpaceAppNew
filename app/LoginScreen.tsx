@@ -18,6 +18,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "./LanguageContext";
 import { useTheme } from "./ThemeContext";
+import { resendVerificationEmail } from '@/services/authService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -27,44 +28,58 @@ export default function LoginScreen() {
   const { login } = useAuth();
   const router = useRouter();
   
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
 
   const handleLogin = async () => {
-    if (!email || !password) {
+    if (!username || !password) {
       Alert.alert(
         language === "ka" ? "შეცდომა" : "Error",
-        language === "ka" ? "შეავსე ყველა ველი!" : "Please fill in all fields!"
+        language === "ka" ? "გთხოვთ შეავსოთ ყველა ველი" : "Please fill in all fields"
       );
       return;
     }
-
+  
     try {
       setLoading(true);
-      await login(email, password);
+      await login(username, password);
+      
+      // If login is successful, show success message and redirect
       Alert.alert(
         language === "ka" ? "მოგესალმები 🌸" : "Welcome 🌸",
         language === "ka" ? "წარმატებით შეხვედი!" : "You logged in successfully!",
-        [
-          {
-            text: language === "ka" ? "კარგი" : "OK",
-            onPress: () => router.replace("/(tabs)")
-          }
-        ]
+        [{ text: language === "ka" ? "კარგი" : "OK", onPress: () => router.replace("/(tabs)") }]
       );
     } catch (error: any) {
       console.error('Login error:', error);
-      const errorMessage = error.message === 'No active account found with the given credentials'
-        ? language === "ka" ? "არასწორი ელ-ფოსტა ან პაროლი" : "Incorrect email or password"
-        : error.message || (language === "ka" ? "შეცდომა შესვლისას" : "Error during login");
+      let errorMessage = error.message || (language === "ka" ? "შეცდომა შესვლისას" : "Error during login");
       
-      Alert.alert(
-        language === "ka" ? "შეცდომა" : "Error",
-        errorMessage
-      );
+      // Handle specific error cases
+      if (error.message.includes('verify your email')) {
+        Alert.alert(
+          language === "ka" ? "ელ-ფოსტის დადასტურება საჭიროა" : "Email Verification Required",
+          error.message,
+          [
+            {
+              text: language === "ka" ? "დარეგისტრირება" : "Register",
+              onPress: () => router.replace("/RegisterScreen"),
+              style: 'cancel'
+            },
+            {
+              text: language === "ka" ? "ელ-ფოსტის ხელახლა გაგზავნა" : "Resend Email",
+              onPress: () => resendVerificationEmail(username)
+            }
+          ]
+        );
+      } else {
+        Alert.alert(
+          language === "ka" ? "შეცდომა" : "Error",
+          errorMessage
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -126,23 +141,26 @@ export default function LoginScreen() {
                 styles.inputWrapper,
                 { 
                   backgroundColor: isDark ? '#1A1A2E' : '#FFFFFF',
-                  borderColor: focusedInput === 'email' ? '#FF6B9D' : (isDark ? '#2D3748' : '#E2E8F0')
+                  borderColor: focusedInput === 'username' ? '#FF6B9D' : (isDark ? '#2D3748' : '#E2E8F0')
                 }
               ]}>
                 <Ionicons 
-                  name="mail" 
+                  name="person" 
                   size={20} 
-                  color={focusedInput === 'email' ? '#FF6B9D' : (isDark ? '#A0AEC0' : '#718096')} 
+                  color={focusedInput === 'username' ? '#FF6B9D' : (isDark ? '#A0AEC0' : '#718096')} 
                 />
                 <TextInput
-                  style={[styles.input, { color: isDark ? '#FFFFFF' : '#2D3748' }]}
-                  placeholder={language === "ka" ? "შეიყვანე შენი ელ-ფოსტა" : "Enter your email"}
-                  placeholderTextColor={isDark ? '#718096' : '#A0AEC0'}
-                  value={email}
-                  onChangeText={setEmail}
-                  onFocus={() => setFocusedInput('email')}
+                  style={[
+                    styles.input,
+                    focusedInput === 'username' && styles.focusedInput,
+                    { color: colors.text, borderColor: colors.border }
+                  ]}
+                  placeholder={language === 'ka' ? 'მომხმარებლის სახელი' : 'Username'}
+                  placeholderTextColor={colors.textSecondary}
+                  value={username}
+                  onChangeText={setUsername}
+                  onFocus={() => setFocusedInput('username')}
                   onBlur={() => setFocusedInput(null)}
-                  keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
@@ -346,11 +364,15 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
+  focusedInput: {
+    borderColor: '#FF6B9D',
+  },
   input: {
     flex: 1,
     fontSize: 16,
     fontWeight: '500',
-    paddingVertical: 16,
+    paddingVertical: 12,
+    marginLeft: 10,
     paddingHorizontal: 12,
   },
   passwordToggle: {

@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import * as authService from "../services/authService";
 import { onAuthFailure } from "../services/authService";
 
@@ -67,20 +67,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(true);
       
       // Try to login with the provided credentials
-      const data = await authService.login(username, password);
+      const { access, refresh } = await authService.login(username, password);
       
       // Store tokens
-      await AsyncStorage.setItem("access_token", data.access);
-      await AsyncStorage.setItem("refresh_token", data.refresh);
+      await AsyncStorage.setItem("access_token", access);
+      await AsyncStorage.setItem("refresh_token", refresh);
       
-      // Handle user data
-      let userData = data.user;
-      
-      // If user data wasn't included in the login response, fetch it separately
-      if (!userData && data.access) {
-        console.log('Fetching user data separately...');
-        userData = await authService.getUserInfo(data.access);
-      }
+      // Fetch user data separately after successful login
+      console.log('Fetching user data...');
+      const userData = await authService.getUserInfo(access);
       
       if (userData) {
         console.log('Storing user data:', userData);
