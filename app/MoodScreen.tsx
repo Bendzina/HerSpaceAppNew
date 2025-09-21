@@ -10,6 +10,7 @@ import {
   TextInput,
   Alert 
 } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { createMoodCheckIn, updateMoodCheckIn, listMoodCheckIns, type EmotionalSupportOption, type MoodCheckIn } from "@/services/moodService";
 import { getProfile } from "@/services/wellnessProfileService";
@@ -106,14 +107,8 @@ export default function MoodScreen() {
       setCreatedId(result?.id ?? null);
       setIsSaved(true);
       Alert.alert('', currentTranslations.progressSaved);
-      // Redirect to Motherhood if profile focus is motherhood
-      try {
-        const profile = await getProfile();
-        if (String(profile?.current_mood_context || '').toLowerCase() === 'motherhood') {
-          router.replace('/motherhood');
-          return;
-        }
-      } catch {}
+      // Navigate to notifications screen after saving mood
+      router.replace('/NotificationsScreen');
       setTimeout(() => setIsSaved(false), 2000);
       refreshRecent();
     } catch (e: any) {

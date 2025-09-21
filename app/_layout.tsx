@@ -1,20 +1,19 @@
 import { useFonts } from 'expo-font';
+import { useRouter } from 'expo-router';
 import { Drawer } from 'expo-router/drawer';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '../context/AuthContext';
-import { useEffect } from 'react';
-import { useRouter } from 'expo-router';
 import { checkEmailVerification } from '../services/authService';
 
-import { useColorScheme } from '@/hooks/useColorScheme';
+import CustomDrawerContent from '@/components/navigation/CustomDrawerContent';
+import { translations } from '@/i18n/translations';
+import { Ionicons } from '@expo/vector-icons';
 import { LanguageProvider, useLanguage } from './LanguageContext';
 import { ThemeProvider, useTheme } from './ThemeContext';
-import CustomDrawerContent from '@/components/navigation/CustomDrawerContent';
-import { Ionicons } from '@expo/vector-icons';
-import { translations } from '@/i18n/translations';
 
 function InnerDrawer() {
   const { colors } = useTheme();
@@ -24,42 +23,66 @@ function InnerDrawer() {
   const router = useRouter();
 
   useEffect(() => {
+    let isMounted = true;
+    let verificationCheckTimeout: number | null = null;
+    let verificationInterval: number | null = null;
+
     const checkVerification = async () => {
-      if (!user) return;
+      if (!user || !isMounted) return;
       
       try {
-        // Get current path from the URL
-        const currentPath = new URL(window.location.href).pathname;
+        const currentPath = window.location.pathname;
         
-        // Skip verification check for the verify-email screen and login page to prevent infinite loops
-        if (currentPath.includes('verify-email') || currentPath.includes('LoginScreen')) return;
-        
-        if (!user?.email) return; // Skip if no user email
-        
-        const response = await checkEmailVerification(user.email);
-        if (!response.is_verified) {
-          // Only navigate if we're not already on the verify-email screen
-          if (!currentPath.includes('verify-email')) {
-            router.replace({
-              pathname: '/verify-email',
-              params: { email: user.email }
-            } as any);
-          }
-        } else if (currentPath.includes('verify-email')) {
-          // If user is already verified but on verify-email screen, redirect to home
-          router.replace('/(tabs)');
+        // Skip unnecessary checks
+        if (currentPath.includes('verify-email') || 
+            currentPath.includes('LoginScreen') || 
+            !user?.email) {
+          return;
         }
+
+        // Add a small delay to prevent rapid consecutive checks
+        if (verificationCheckTimeout !== null) {
+          clearTimeout(verificationCheckTimeout);
+        }
+        verificationCheckTimeout = window.setTimeout(async () => {
+          try {
+            const response = await checkEmailVerification(user.email);
+            if (!isMounted) return;
+
+            if (!response.is_verified) {
+              if (!currentPath.includes('verify-email')) {
+                router.replace({
+                  pathname: '/verify-email',
+                  params: { email: user.email }
+                } as any);
+              }
+            } else if (currentPath.includes('verify-email')) {
+              router.replace('/(tabs)');
+            }
+          } catch (error) {
+            console.error('Error checking verification status:', error);
+          }
+        }, 500); // 500ms debounce
       } catch (error) {
-        console.error('Error checking verification status:', error);
-        // If there's an error, still allow access but log it
+        console.error('Error in verification check:', error);
       }
     };
 
-    // Check verification status immediately and then every 30 seconds
+    // Initial check
     checkVerification();
-    const interval = setInterval(checkVerification, 30000);
     
-    return () => clearInterval(interval);
+    // Set up periodic check (every 2 minutes instead of 30 seconds)
+    verificationInterval = window.setInterval(checkVerification, 120000);
+    
+    return () => {
+      isMounted = false;
+      if (verificationCheckTimeout !== null) {
+        clearTimeout(verificationCheckTimeout);
+      }
+      if (verificationInterval !== null) {
+        clearInterval(verificationInterval);
+      }
+    };
   }, [user, router]);
 
   // Check if we're on the verify-email screen

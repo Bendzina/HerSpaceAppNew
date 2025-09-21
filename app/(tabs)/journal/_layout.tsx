@@ -1,7 +1,7 @@
-import React from 'react';
-import { Stack } from 'expo-router';
 import { useLanguage } from '@/app/LanguageContext';
 import { useTheme } from '@/app/ThemeContext';
+import { Stack } from 'expo-router';
+import React from 'react';
 
 export default function JournalStackLayout() {
   const { language } = useLanguage();
@@ -19,7 +19,13 @@ export default function JournalStackLayout() {
         headerTintColor: colors.text,
       }}
     >
-      <Stack.Screen name="index" options={{ title: t.journal }} />
+      <Stack.Screen 
+        name="index" 
+        options={{ 
+          title: t.journal,
+          headerShown: false // Hide header for the main journal screen
+        }} 
+      />
       <Stack.Screen name="new-entry" options={{ title: t.newEntry }} />
       <Stack.Screen name="[id]" options={{ title: t.entry }} />
     </Stack>

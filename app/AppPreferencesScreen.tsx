@@ -1,6 +1,7 @@
 // app/AppPreferencesScreen.tsx
 import React, { useState } from 'react';
-import { Alert, StyleSheet, Switch, Text, TouchableOpacity, View, SafeAreaView, Dimensions } from 'react-native';
+import { Alert, StyleSheet, Switch, Text, TouchableOpacity, View, Dimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';

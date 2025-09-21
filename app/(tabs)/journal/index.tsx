@@ -1,11 +1,11 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Dimensions } from 'react-native';
-import { useRouter } from 'expo-router';
-import { listEntries, JournalEntry } from '@/services/journalService';
-import { useFocusEffect } from '@react-navigation/native';
-import { useTheme } from '@/app/ThemeContext';
 import { useLanguage } from '@/app/LanguageContext';
+import { useTheme } from '@/app/ThemeContext';
+import { JournalEntry, listEntries } from '@/services/journalService';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Dimensions, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -75,17 +75,6 @@ export default function JournalScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header with gradient background */}
-      <LinearGradient
-        colors={['#FFE5F1', '#F8E8FF', '#E8F4FD']}
-        style={styles.headerGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <Text style={styles.headerTitle}>{t.myJournal}</Text>
-        <Text style={styles.headerSubtitle}>💫 Your personal space</Text>
-      </LinearGradient>
-
       {/* New Entry Button */}
       <TouchableOpacity
         onPress={() => router.push('/(tabs)/journal/new-entry' as any)}
@@ -192,31 +181,8 @@ export default function JournalScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  headerGradient: {
-    paddingTop: 60,
-    paddingBottom: 30,
-    paddingHorizontal: 24,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#2D3748',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: '#718096',
-    textAlign: 'center',
-    fontWeight: '500',
+    padding: 16,
+    paddingTop: 16,
   },
   newEntryButton: {
     marginHorizontal: 24,

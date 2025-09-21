@@ -1,11 +1,12 @@
 import { useAuth } from "@/context/AuthContext";
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, Dimensions, Image, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ImageSourcePropType } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert, Dimensions, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLanguage } from '../LanguageContext';
 import { useTheme } from '../ThemeContext';
 
@@ -88,31 +89,51 @@ export default function ProfileScreen() {
   const t = translations[language] || translations.en;
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchUserData = async () => {
       try {
-        const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://192.168.100.4:8000/api'}/users/stats/`, {
+        // Fetch user stats
+        const statsResponse = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://192.168.100.4:8000/api'}/users/stats/`, {
           headers: {
             'Authorization': `Bearer ${await AsyncStorage.getItem('access_token')}`,
             'Content-Type': 'application/json',
           },
         });
         
-        if (response.ok) {
-          const data = await response.json();
+        if (statsResponse.ok) {
+          const data = await statsResponse.json();
           setStats({
             dayStreak: data.day_streak || 0,
             ritualsCompleted: data.rituals_completed || 0,
             journalEntries: data.journal_entries || 0
           });
         }
+
+        // Fetch user profile to get the latest image
+        const profileResponse = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://192.168.100.4:8000/api'}/users/me/`, {
+          headers: {
+            'Authorization': `Bearer ${await AsyncStorage.getItem('access_token')}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (profileResponse.ok) {
+          const userData = await profileResponse.json();
+          if (userData.profile_image) {
+            const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.100.4:8000';
+            const imageUrl = userData.profile_image.startsWith('http')
+              ? userData.profile_image
+              : `${baseUrl}${userData.profile_image.startsWith('/') ? '' : '/'}${userData.profile_image}`;
+            setImage(imageUrl);
+          }
+        }
       } catch (error) {
-        console.error('Error fetching stats:', error);
+        console.error('Error fetching user data:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchStats();
+    fetchUserData();
   }, []);
 
 
@@ -126,23 +147,68 @@ export default function ProfileScreen() {
 
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'images',
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 1,
+        quality: 0.8,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const imageUri = result.assets[0].uri;
         setImage(imageUri);
         
-        // Here you would typically upload the image to your server
-        // and update the user's profile with the new image URL
-        // await updateUserProfile({ profileImage: imageUri });
+        // Create form data for file upload
+        const formData = new FormData();
+        const filename = imageUri.split('/').pop() || 'profile.jpg';
+        const match = /\\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : 'image';
+        
+        // @ts-ignore: TypeScript doesn't know about React Native's file structure
+        formData.append('profileImage', {
+          uri: imageUri,
+          name: filename,
+          type,
+        });
+
+        // Get the token
+        const token = await AsyncStorage.getItem('access_token');
+        if (!token) {
+          throw new Error('No access token found');
+        }
+
+        // Upload the image
+        const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://192.168.100.4:8000/api'}/users/me/`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.detail || 'Failed to upload image');
+        }
+
+        // Update the user data in the UI
+        const updatedUser = await response.json();
+        console.log('Updated user data:', updatedUser);
+        
+        if (updatedUser.profile_image) {
+          // Construct the full URL for the image
+          const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.100.4:8000';
+          const imageUrl = updatedUser.profile_image.startsWith('http')
+            ? updatedUser.profile_image
+            : `${baseUrl}${updatedUser.profile_image.startsWith('/') ? '' : '/'}${updatedUser.profile_image}`;
+            
+          console.log('Setting image URL:', imageUrl);
+          setImage(imageUrl);
+        }
       }
-    } catch (error) {
-      console.error('Error picking image:', error);
-      Alert.alert(t.profile.errorTitle, 'Failed to select image');
+    } catch (error: any) {
+      console.error('Error picking/uploading image:', error);
+      Alert.alert(t.profile.errorTitle, error?.message || 'Failed to upload image');
     }
   };
 
@@ -177,47 +243,13 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#0F0F23' : '#F8F9FA' }]}>
-      {/* Header with gradient background */}
+      {/* Gradient background */}
       <LinearGradient
         colors={isDark ? ['#1A1A2E', '#16213E', '#0F0F23'] : ['#E8F4FD', '#F0E8FF', '#FFE5F1']}
         style={styles.headerGradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
-        {/* Header Navigation */}
-        <View style={styles.headerNav}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => router.back()}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={['#FF6B9D', '#C44569']}
-              style={styles.navButtonGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              <Ionicons name="arrow-back" size={20} color="#FFF" />
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <Text style={styles.headerTitle}>{t.profile.title}</Text>
-
-          <TouchableOpacity 
-            style={styles.settingsButton}
-            onPress={() => router.push('/SettingsScreen')}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={['#667EEA', '#764BA2']}
-              style={styles.navButtonGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              <Ionicons name="settings" size={20} color="#FFF" />
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
 
         {/* Profile Info */}
         <View style={styles.profileSection}>

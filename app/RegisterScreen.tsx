@@ -6,13 +6,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  SafeAreaView,
   Dimensions,
   KeyboardAvoidingView,
   Platform,
   ScrollView
 } from "react-native";
 import { useRouter } from "expo-router";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from "./ThemeContext";

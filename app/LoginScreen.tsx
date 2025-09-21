@@ -1,3 +1,4 @@
+import { resendVerificationEmail } from '@/services/authService';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from "expo-router";
@@ -7,7 +8,6 @@ import {
   Dimensions,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,10 +15,10 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "./LanguageContext";
 import { useTheme } from "./ThemeContext";
-import { resendVerificationEmail } from '@/services/authService';
 
 const { width, height } = Dimensions.get('window');
 

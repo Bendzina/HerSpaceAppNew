@@ -1,11 +1,11 @@
 
-import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { Ionicons } from '@expo/vector-icons';
+import { DrawerActions } from '@react-navigation/native';
+import { Tabs } from 'expo-router';
 import React from 'react';
 import { TouchableOpacity } from 'react-native';
-import { DrawerActions } from '@react-navigation/native';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -78,11 +78,12 @@ export default function TabLayout() {
       <Tabs.Screen
         name="journal"
         options={{
-          headerShown: false,
           title: 'Journal',
           tabBarIcon: ({ color }) => (
             <Ionicons name="book" size={22} color={color} />
           ),
+          headerShown: true,
+
         }}
       />
       <Tabs.Screen
