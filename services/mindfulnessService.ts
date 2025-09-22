@@ -27,49 +27,91 @@ export async function getMindfulnessActivities(language: string = 'en'): Promise
     const url = `/wellness/mindfulness/activities/?lang=${language}`;
     console.log('Request URL:', url);
     
-    const response = await authorizedFetch(url);
-    console.log('Response status:', response.status);
+    // Use authorizedFetch which will handle authentication
+    const response = await authorizedFetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+    });
     
-    if (!response.ok) {
-      let errorText = '';
-      try {
-        // First try to get the response as text
-        errorText = await response.text();
-        // Then try to parse it as JSON
-        try {
-          const errorData = JSON.parse(errorText);
-          console.error('API Error Response (JSON):', errorData);
-          throw new Error(errorData.detail || errorData.message || `HTTP ${response.status}: ${response.statusText}`);
-        } catch (jsonError) {
-          // If it's not JSON, use the raw text
-          console.error('API Error Response (text):', errorText);
-          throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
-        }
-      } catch (error) {
-        console.error('Error processing error response:', error);
-        const status = response?.status || 'unknown';
-        const statusText = response?.statusText || 'Unknown Error';
-        throw new Error(`HTTP ${status}: ${statusText} - Could not process error response`);
-      }
+    if (!response) {
+      throw new Error('No response received from server');
     }
     
+    // Log response details
+    console.log('Response status:', response.status);
+    const headers = Object.fromEntries([...response.headers.entries()]);
+    console.log('Response headers:', JSON.stringify(headers, null, 2));
+    
+    // Get the response text
+    const responseText = await response.text();
+    
+    // Log first 500 chars of response for debugging
+    const previewLength = Math.min(500, responseText.length);
+    console.log('Response preview:', responseText.substring(0, previewLength));
+    
+    // Check if response is empty
+    if (!responseText.trim()) {
+      throw new Error('Empty response received from server');
+    }
+    
+    // Try to parse as JSON
     let data;
     try {
-      const responseText = await response.text();
       data = JSON.parse(responseText);
     } catch (e) {
-      console.error('Failed to parse response as JSON:', e);
-      throw new Error('Invalid response format from server');
+      // If it's not JSON, log more details
+      console.error('Failed to parse response as JSON. Response type:', headers['content-type']);
+      console.error('Response length:', responseText.length);
+      
+      // Try to detect common error patterns
+      if (responseText.includes('<html>') || responseText.includes('<!DOCTYPE html>')) {
+        console.error('Server returned HTML instead of JSON. This might be a server-side error page.');
+        throw new Error('Server returned an HTML error page. Please check the server logs.');
+      }
+      
+      if (responseText.includes('CSRF') || responseText.includes('Forbidden')) {
+        console.error('Possible authentication/CSRF error in response');
+        throw new Error('Authentication error. Please log in again.');
+      }
+      
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      throw new Error(`Invalid JSON response: ${errorMessage}`);
     }
-    return data.map((activity: Omit<MindfulnessActivity, 'duration'>) => ({
-      ...activity,
-      // Ensure we have a default icon if not provided
-      icon: activity.icon || 'leaf',
-      // Add duration string for display
-      duration: `${activity.duration_minutes} min`,
-    }));
+    
+    if (!response.ok) {
+      console.error('API Error:', data);
+      throw new Error(data?.detail || data?.message || 'Failed to fetch mindfulness activities');
+    }
+    
+    console.log('Successfully parsed JSON response');
+    
+    // Process the response data
+    if (Array.isArray(data)) {
+      return data.map((activity: any) => ({
+        id: activity.id,
+        title: activity.title,
+        description: activity.description,
+        short_description: activity.short_description || '',
+        icon: activity.icon || 'leaf',
+        duration_minutes: activity.duration_minutes || 5,
+        duration: `${activity.duration_minutes || 5} min`,
+        audio_file: activity.audio_file || null,
+        image: activity.image || null,
+        category: activity.category || 'meditation',
+        category_display: activity.category_display || 'Meditation',
+        difficulty: activity.difficulty || 'beginner',
+        created_at: activity.created_at || new Date().toISOString(),
+        updated_at: activity.updated_at || new Date().toISOString(),
+      }));
+    }
+    
+    console.warn('Expected array of activities but got:', typeof data);
+    return [];
   } catch (error) {
-    console.error('Error fetching mindfulness activities:', error);
+    console.error('Error in getMindfulnessActivities:', error);
     throw error;
   }
 }

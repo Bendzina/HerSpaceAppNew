@@ -193,7 +193,6 @@ export default function ProfileScreen() {
 
         // Update the user data in the UI
         const updatedUser = await response.json();
-        console.log('Updated user data:', updatedUser);
         
         if (updatedUser.profile_image) {
           // Construct the full URL for the image
@@ -202,7 +201,6 @@ export default function ProfileScreen() {
             ? updatedUser.profile_image
             : `${baseUrl}${updatedUser.profile_image.startsWith('/') ? '' : '/'}${updatedUser.profile_image}`;
             
-          console.log('Setting image URL:', imageUrl);
           setImage(imageUrl);
         }
       }

@@ -20,8 +20,6 @@ export default function VerifyEmailScreen() {
   const { language } = useLanguage();
   const { user } = useAuth();
   const router = useRouter();
-  
-  console.log('Verify Email Params:', params);
 
   // Check verification status on mount and periodically
   useEffect(() => {

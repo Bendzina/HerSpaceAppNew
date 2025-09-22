@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 export const href = null;
 
 type Language = 'en' | 'ka';
@@ -261,7 +261,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
         setLanguageState(savedLanguage);
       }
     } catch (error) {
-      console.log('Error loading language:', error);
+      // Error loading language
     } finally {
       setIsLoading(false);
     }
@@ -271,9 +271,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     try {
       setLanguageState(newLanguage);
       await AsyncStorage.setItem('user_language', newLanguage);
-      console.log('Language changed to:', newLanguage);
+      // Language changed
     } catch (error) {
-      console.log('Error saving language:', error);
+      // Error saving language
     }
   };
 

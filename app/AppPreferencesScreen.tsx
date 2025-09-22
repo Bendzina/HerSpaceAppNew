@@ -49,19 +49,16 @@ export default function AppPreferencesScreen() {
 
   // Theme Toggle Handler
   const handleThemeToggle = (value: boolean) => {
-    console.log('Theme toggle pressed:', value);
     setIsDark(value);
   };
 
   // Language Change Handler
   const handleLanguageChange = (newLanguage: 'en' | 'ka') => {
-    console.log('Language change pressed:', newLanguage);
     setLanguage(newLanguage);
   };
 
   // Font Size Change Handler
   const handleFontSizeChange = (size: 'small' | 'medium' | 'large') => {
-    console.log('Font size changed:', size);
     setFontSize(size);
   };
 

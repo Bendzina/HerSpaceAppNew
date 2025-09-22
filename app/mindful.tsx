@@ -15,6 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from './ThemeContext';
 import { useLanguage } from './LanguageContext';
 import { getMindfulnessActivities, trackMindfulnessActivity, MindfulnessActivity } from '../services/mindfulnessService';
+import { useRouter } from 'expo-router';
+import { Audio } from 'expo-av';
 
 const { width } = Dimensions.get('window');
 
@@ -31,6 +33,7 @@ export default function MindfulScreen() {
       setLoading(true);
       setError(null);
       const data = await getMindfulnessActivities(language);
+      
       setActivities(data);
     } catch (err) {
       console.error('Failed to load activities:', err);
@@ -44,22 +47,35 @@ export default function MindfulScreen() {
     loadActivities();
   }, [loadActivities]);
 
+  const router = useRouter();
+
   const handleActivityPress = async (activity: MindfulnessActivity) => {
     try {
       setSelectedActivity(activity.id.toString());
-      const result = await trackMindfulnessActivity(activity.id);
+      // Track the activity start
+      await trackMindfulnessActivity(activity.id);
       
-      // Navigate to activity screen or show details
-      // navigation.navigate('ActivityDetail', { activityId: activity.id });
+      // Ensure audio file URL is properly formatted
+      const activityWithFullUrl = {
+        ...activity,
+        // Ensure the audio file URL is absolute if it's a relative path
+        audio_file: activity.audio_file 
+          ? activity.audio_file.startsWith('http') 
+            ? activity.audio_file 
+            : `http://192.168.100.4:8000${activity.audio_file.startsWith('/') ? '' : '/'}${activity.audio_file}`
+          : undefined
+      };
       
-      // For now, show an alert
-      Alert.alert(
-        language === 'ka' ? 'აქტივობა დაწყებულია' : 'Activity Started',
-        language === 'ka' 
-          ? `თქვენ დაიწყეთ: ${activity.title}`
-          : `You've started: ${activity.title}`,
-        [{ text: 'OK', onPress: () => setSelectedActivity(null) }]
-      );
+      // Navigate to the activity screen with the full URL
+      router.push({
+        pathname: '/activity',
+        params: { 
+          activity: JSON.stringify(activityWithFullUrl)
+        }
+      } as any);
+      
+      // Reset selection after navigation
+      setSelectedActivity(null);
     } catch (error) {
       console.error('Error tracking activity:', error);
       Alert.alert(
@@ -68,6 +84,7 @@ export default function MindfulScreen() {
           ? 'ვერ მოხერხდა აქტივობის დაწყება. გთხოვთ სცადოთ თავიდან.'
           : 'Failed to start activity. Please try again.'
       );
+      setSelectedActivity(null);
     }
   };
 
@@ -86,6 +103,7 @@ export default function MindfulScreen() {
   const renderActivityCard = (activity: MindfulnessActivity) => {
     const isSelected = selectedActivity === activity.id.toString();
     const categoryColor = getCategoryColor(activity.category);
+    const hasAudio = !!activity.audio_file;
     
     return (
       <TouchableOpacity
@@ -140,15 +158,6 @@ export default function MindfulScreen() {
             resizeMode="cover"
           />
         ) : null}
-        
-        <Text
-          style={[styles.activityDescription, { color: colors.textSecondary }]}
-          numberOfLines={3}
-        >
-          {language === 'ka' && activity.description_ka 
-            ? activity.description_ka 
-            : activity.description}
-        </Text>
         
         <View style={styles.activityFooter}>
           <View style={styles.durationBadge}>
