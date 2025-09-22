@@ -33,7 +33,7 @@ export interface CreateRitualDto {
   is_active?: boolean;
 }
 
-const BASE_PATH = '/journal/rituals/';
+const BASE_PATH = '/api/journal/rituals/';
 
 type ListParams = {
   search?: string;

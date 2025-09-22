@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,177 +6,239 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
+  ActivityIndicator,
+  Alert,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from './ThemeContext';
 import { useLanguage } from './LanguageContext';
+import { getMindfulnessActivities, trackMindfulnessActivity, MindfulnessActivity } from '../services/mindfulnessService';
 
 const { width } = Dimensions.get('window');
-
-interface MindfulActivity {
-  id: string;
-  title: string;
-  duration: string;
-  description: string;
-  icon: string;
-  color: string;
-}
 
 export default function MindfulScreen() {
   const { colors } = useTheme();
   const { language } = useLanguage();
   const [selectedActivity, setSelectedActivity] = useState<string | null>(null);
+  const [activities, setActivities] = useState<MindfulnessActivity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const activities: MindfulActivity[] = [
-    {
-      id: '1',
-      title: language === 'ka' ? 'სუნთქვის ვარჯიში' : 'Breathing Exercise',
-      duration: '5 min',
-      description: language === 'ka' 
-        ? 'მშვიდი სუნთქვით დაისვენე და დაემშვიდობე' 
-        : 'Relax and calm down with peaceful breathing',
-      icon: 'leaf-outline',
-      color: '#4CAF50'
-    },
-    {
-      id: '2', 
-      title: language === 'ka' ? 'მედიტაცია' : 'Meditation',
-      duration: '10 min',
-      description: language === 'ka'
-        ? 'მოძებნე შინაგანი სიმშვიდე და ჰარმონია'
-        : 'Find inner peace and harmony',
-      icon: 'flower-outline',
-      color: '#9C27B0'
-    },
-    {
-      id: '3',
-      title: language === 'ka' ? 'ტანის რელაქსაცია' : 'Body Relaxation', 
-      duration: '8 min',
-      description: language === 'ka'
-        ? 'გაათავისუფლე ტანის დაძაბულობა'
-        : 'Release tension from your body',
-      icon: 'body-outline',
-      color: '#FF9800'
-    },
-    {
-      id: '4',
-      title: language === 'ka' ? 'ვიზუალიზაცია' : 'Visualization',
-      duration: '12 min', 
-      description: language === 'ka'
-        ? 'წარმოიდგინე მშვიდი და ლამაზი ადგილები'
-        : 'Imagine peaceful and beautiful places',
-      icon: 'eye-outline',
-      color: '#2196F3'
+  const loadActivities = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getMindfulnessActivities(language);
+      setActivities(data);
+    } catch (err) {
+      console.error('Failed to load activities:', err);
+      setError(language === 'ka' ? 'ვერ ჩაიტვირთა მედიტაციის აქტივობები' : 'Failed to load mindfulness activities');
+    } finally {
+      setLoading(false);
     }
-  ];
+  }, [language]);
+
+  useEffect(() => {
+    loadActivities();
+  }, [loadActivities]);
+
+  const handleActivityPress = async (activity: MindfulnessActivity) => {
+    try {
+      setSelectedActivity(activity.id.toString());
+      const result = await trackMindfulnessActivity(activity.id);
+      
+      // Navigate to activity screen or show details
+      // navigation.navigate('ActivityDetail', { activityId: activity.id });
+      
+      // For now, show an alert
+      Alert.alert(
+        language === 'ka' ? 'აქტივობა დაწყებულია' : 'Activity Started',
+        language === 'ka' 
+          ? `თქვენ დაიწყეთ: ${activity.title}`
+          : `You've started: ${activity.title}`,
+        [{ text: 'OK', onPress: () => setSelectedActivity(null) }]
+      );
+    } catch (error) {
+      console.error('Error tracking activity:', error);
+      Alert.alert(
+        language === 'ka' ? 'შეცდომა' : 'Error',
+        language === 'ka'
+          ? 'ვერ მოხერხდა აქტივობის დაწყება. გთხოვთ სცადოთ თავიდან.'
+          : 'Failed to start activity. Please try again.'
+      );
+    }
+  };
+
+  const getCategoryColor = (category: string) => {
+    const colors = {
+      breathing: '#4CAF50',
+      meditation: '#9C27B0',
+      body_scan: '#2196F3',
+      gratitude: '#FF9800',
+      visualization: '#E91E63',
+      movement: '#607D8B',
+    };
+    return colors[category as keyof typeof colors] || '#9E9E9E';
+  };
+
+  const renderActivityCard = (activity: MindfulnessActivity) => {
+    const isSelected = selectedActivity === activity.id.toString();
+    const categoryColor = getCategoryColor(activity.category);
+    
+    return (
+      <TouchableOpacity
+        key={activity.id.toString()}
+        style={[
+          styles.activityCard,
+          {
+            backgroundColor: isSelected ? colors.primary + '20' : colors.surface,
+            borderColor: isSelected ? colors.primary : colors.border,
+          },
+        ]}
+        onPress={() => handleActivityPress(activity)}
+        disabled={isSelected}
+      >
+        <View style={styles.activityHeader}>
+          <View
+            style={[
+              styles.activityIcon,
+              { backgroundColor: categoryColor + '20' },
+            ]}
+          >
+            <Ionicons
+              name={activity.icon as any}
+              size={24}
+              color={categoryColor}
+            />
+          </View>
+          <View style={styles.activityHeaderText}>
+            <Text
+              style={[styles.activityTitle, { color: colors.text }]}
+              numberOfLines={1}
+            >
+              {language === 'ka' && activity.title_ka ? activity.title_ka : activity.title}
+            </Text>
+            <Text style={[styles.activityCategory, { color: colors.textSecondary }]}>
+              {activity.category.replace('_', ' ')}
+            </Text>
+          </View>
+          {activity.difficulty === 'intermediate' || activity.difficulty === 'advanced' ? (
+            <View style={[styles.difficultyBadge, { backgroundColor: categoryColor + '40' }]}>
+              <Text style={[styles.difficultyText, { color: colors.text }]}>
+                {activity.difficulty}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+        
+        {activity.image ? (
+          <Image 
+            source={{ uri: activity.image }} 
+            style={styles.activityImage}
+            resizeMode="cover"
+          />
+        ) : null}
+        
+        <Text
+          style={[styles.activityDescription, { color: colors.textSecondary }]}
+          numberOfLines={3}
+        >
+          {language === 'ka' && activity.description_ka 
+            ? activity.description_ka 
+            : activity.description}
+        </Text>
+        
+        <View style={styles.activityFooter}>
+          <View style={styles.durationBadge}>
+            <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
+            <Text style={[styles.durationText, { color: colors.textSecondary }]}>
+              {activity.duration_minutes} min
+            </Text>
+          </View>
+          
+          {activity.audio_file && (
+            <View style={styles.audioBadge}>
+              <Ionicons name="musical-notes" size={14} color={colors.textSecondary} />
+              <Text style={[styles.audioText, { color: colors.textSecondary }]}>
+                {language === 'ka' ? 'აუდიო' : 'Audio'}
+              </Text>
+            </View>
+          )}
+        </View>
+        
+        {isSelected && (
+          <View style={styles.selectedOverlay}>
+            <Ionicons
+              name="checkmark-circle"
+              size={32}
+              color={colors.primary}
+            />
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.errorContainer, { backgroundColor: colors.background }]}>
+        <Text style={[styles.errorText, { color: colors.text }]}>{error}</Text>
+        <TouchableOpacity 
+          style={[styles.retryButton, { backgroundColor: colors.primary }]}
+          onPress={loadActivities}
+        >
+          <Text style={styles.retryButtonText}>
+            {language === 'ka' ? 'ხელახლა ცდა' : 'Retry'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.background }]}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          {language === 'ka' ? 'მაინდფულნესი' : 'Mindfulness'}
-        </Text>
-        <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-          {language === 'ka' 
-            ? 'დაისვენე და დაემშვიდობე ამ ვარჯიშებით' 
-            : 'Relax and find peace with these exercises'}
-        </Text>
-      </View>
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Quick Stats */}
-        <View style={[styles.statsContainer, { backgroundColor: colors.surface }]}>
-          <View style={styles.statItem}>
-            <Ionicons name="flame" size={24} color={colors.primary} />
-            <Text style={[styles.statNumber, { color: colors.text }]}>7</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-              {language === 'ka' ? 'დღე ზედიზედ' : 'Day Streak'}
-            </Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Ionicons name="time" size={24} color={colors.primary} />
-            <Text style={[styles.statNumber, { color: colors.text }]}>45</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-              {language === 'ka' ? 'წუთი დღეს' : 'Min Today'}
-            </Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Ionicons name="trophy" size={24} color={colors.primary} />
-            <Text style={[styles.statNumber, { color: colors.text }]}>12</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-              {language === 'ka' ? 'შესრულებული' : 'Completed'}
-            </Text>
-          </View>
-        </View>
-
-        {/* Daily Goal */}
-        <View style={[styles.goalContainer, { backgroundColor: colors.surface }]}>
-          <View style={styles.goalHeader}>
-            <Text style={[styles.goalTitle, { color: colors.text }]}>
-              {language === 'ka' ? 'დღეს მიზანი' : 'Today\'s Goal'}
-            </Text>
-            <Text style={[styles.goalProgress, { color: colors.primary }]}>3/5</Text>
-          </View>
-          <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
-            <View style={[styles.progressFill, { backgroundColor: colors.primary, width: '60%' }]} />
-          </View>
-          <Text style={[styles.goalText, { color: colors.textSecondary }]}>
-            {language === 'ka' ? '15 წუთი მედიტაცია' : '15 minutes meditation'}
+      <ScrollView>
+        <View style={styles.header}>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            {language === 'ka' ? 'წუთიერება' : 'Mindfulness'}
+          </Text>
+          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
+            {language === 'ka' 
+              ? 'იპოვე შენი შინაგანი სიმშვიდე' 
+              : 'Find your inner peace'}
           </Text>
         </View>
 
-        {/* Activities */}
-        <View style={styles.activitiesHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            {language === 'ka' ? 'აღმოაჩინე ვარჯიშები' : 'Discover Exercises'}
-          </Text>
-        </View>
-
-        {activities.map(activity => (
-          <TouchableOpacity
-            key={activity.id}
-            style={[
-              styles.activityCard,
-              { 
-                backgroundColor: colors.surface,
-                borderColor: selectedActivity === activity.id ? colors.primary : 'transparent'
-              }
-            ]}
-            onPress={() => setSelectedActivity(activity.id)}
-            activeOpacity={0.8}
-          >
-            <View style={styles.activityContent}>
-              <View style={[styles.activityIcon, { backgroundColor: activity.color + '20' }]}>
-                <Ionicons name={activity.icon as any} size={28} color={activity.color} />
-              </View>
-              
-              <View style={styles.activityInfo}>
-                <View style={styles.activityHeader}>
-                  <Text style={[styles.activityTitle, { color: colors.text }]}>
-                    {activity.title}
-                  </Text>
-                  <Text style={[styles.activityDuration, { color: colors.primary }]}>
-                    {activity.duration}
-                  </Text>
-                </View>
-                <Text style={[styles.activityDescription, { color: colors.textSecondary }]}>
-                  {activity.description}
-                </Text>
-              </View>
+        <View style={styles.activitiesContainer}>
+          {activities.length > 0 ? (
+            activities.map((activity) => renderActivityCard(activity))
+          ) : (
+            <View style={{
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 32,
+            }}>
+              <Ionicons name="sad-outline" size={48} color={colors.textSecondary} style={{ marginBottom: 16 }} />
+              <Text style={{ 
+                color: colors.textSecondary,
+                textAlign: 'center',
+                fontSize: 16,
+              }}>
+                {language === 'ka' ? 'არ არის აქტივობები' : 'No activities found'}
+              </Text>
             </View>
-
-            <TouchableOpacity 
-              style={[styles.playButton, { backgroundColor: activity.color }]}
-              onPress={() => {/* Start activity */}}
-            >
-              <Ionicons name="play" size={16} color="#FFF" />
-            </TouchableOpacity>
-          </TouchableOpacity>
-        ))}
+          )}
+        </View>
 
         {/* Recent Sessions */}
         <View style={styles.recentHeader}>
@@ -206,96 +268,219 @@ export default function MindfulScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: 20, paddingVertical: 20 },
-  headerTitle: { fontSize: 28, fontWeight: 'bold', marginBottom: 4 },
-  headerSubtitle: { fontSize: 16 },
-  
-  content: { flex: 1, paddingHorizontal: 20 },
-  
-  statsContainer: {
-    flexDirection: 'row',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-    justifyContent: 'space-between',
-  },
-  statItem: { flex: 1, alignItems: 'center' },
-  statNumber: { fontSize: 24, fontWeight: 'bold', marginTop: 8 },
-  statLabel: { fontSize: 12, marginTop: 4 },
-  statDivider: { width: 1, backgroundColor: '#E0E0E0', marginHorizontal: 15 },
-  
-  goalContainer: {
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-  },
-  goalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  goalTitle: { fontSize: 18, fontWeight: '600' },
-  goalProgress: { fontSize: 16, fontWeight: '600' },
-  progressBar: {
-    height: 8,
-    borderRadius: 4,
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
     marginBottom: 8,
   },
-  progressFill: { height: '100%', borderRadius: 4 },
-  goalText: { fontSize: 14 },
-  
-  activitiesHeader: { marginBottom: 16 },
-  sectionTitle: { fontSize: 20, fontWeight: '600' },
-  
-  activityCard: {
-    borderRadius: 16,
+  headerSubtitle: {
+    fontSize: 14,
+    opacity: 0.7,
+  },
+  activitiesContainer: {
+    flex: 1,
+    width: '100%',
+  },
+  scrollContainer: {
     padding: 16,
-    marginBottom: 12,
-    borderWidth: 2,
+    paddingBottom: 32,
   },
-  activityContent: {
+  header: {
+    marginBottom: 24,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    opacity: 0.8,
+  },
+  activitiesGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 24,
   },
-  activityIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
+  activityCard: {
+    width: '100%',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    position: 'relative',
+    overflow: 'hidden',
   },
-  activityInfo: { flex: 1 },
   activityHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 12,
   },
-  activityTitle: { fontSize: 18, fontWeight: '600' },
-  activityDuration: { fontSize: 14, fontWeight: '500' },
-  activityDescription: { fontSize: 14, lineHeight: 20 },
-  
-  playButton: {
+  activityHeaderText: {
+    flex: 1,
+    marginRight: 8,
+  },
+  activityIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 12,
+    alignItems: 'center',
+    marginRight: 12,
   },
-  
-  recentHeader: { marginTop: 8, marginBottom: 16 },
+  activityTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  activityCategory: {
+    fontSize: 12,
+    opacity: 0.7,
+    textTransform: 'capitalize',
+    marginTop: 2,
+  },
+  activityDescription: {
+    fontSize: 14,
+    lineHeight: 20,
+    opacity: 0.9,
+    marginBottom: 12,
+  },
+  activityImage: {
+    width: '100%',
+    height: 120,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  activityFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  durationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  durationText: {
+    fontSize: 12,
+    marginLeft: 4,
+  },
+  audioBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  audioText: {
+    fontSize: 12,
+    marginLeft: 4,
+  },
+  difficultyBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    alignSelf: 'flex-start',
+  },
+  difficultyText: {
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  selectedOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+  },
+  recentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+  },
   recentCard: {
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 16,
-    marginBottom: 20,
   },
   recentItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: 12,
     marginBottom: 12,
   },
-  recentText: { marginLeft: 12, fontSize: 14 },
+  recentIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  recentDetails: {
+    flex: 1,
+  },
+  recentTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  recentTime: {
+    fontSize: 14,
+    opacity: 0.7,
+  },
+  divider: {
+    height: 1,
+    width: '100%',
+    opacity: 0.2,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  errorText: {
+    marginTop: 16,
+    marginBottom: 24,
+    textAlign: 'center',
+    fontSize: 16,
+  },
+  retryButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontWeight: '600',
+  },
+  emptyState: {
+    width: '100%',
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  recentText: { 
+    marginLeft: 12, 
+    fontSize: 14 
+  },
 });
