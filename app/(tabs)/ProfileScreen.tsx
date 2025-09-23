@@ -127,7 +127,7 @@ export default function ProfileScreen() {
           }
         }
       } catch (error) {
-        console.error('Error fetching user data:', error);
+        // Handle error silently
       } finally {
         setIsLoading(false);
       }
@@ -205,7 +205,6 @@ export default function ProfileScreen() {
         }
       }
     } catch (error: any) {
-      console.error('Error picking/uploading image:', error);
       Alert.alert(t.profile.errorTitle, error?.message || 'Failed to upload image');
     }
   };
@@ -227,7 +226,6 @@ export default function ProfileScreen() {
       setIsEditingName(false);
       Alert.alert(t.profile.successTitle, t.profile.nameUpdated);
     } catch (error) {
-      console.error('Failed to update name:', error);
       Alert.alert(t.profile.errorTitle, t.profile.updateError);
     }
   };

@@ -54,7 +54,6 @@ export default function LoginScreen() {
         [{ text: language === "ka" ? "კარგი" : "OK", onPress: () => router.replace("/(tabs)") }]
       );
     } catch (error: any) {
-      console.error('Login error:', error);
       let errorMessage = error.message || (language === "ka" ? "შეცდომა შესვლისას" : "Error during login");
       
       // Handle specific error cases

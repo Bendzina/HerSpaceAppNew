@@ -17,7 +17,6 @@ export default function ActivityPage() {
   const { activity } = useLocalSearchParams<{ activity: string }>();
   
   if (!activity) {
-    console.error('No activity data provided');
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <Text>Error: No activity data provided</Text>
@@ -40,7 +39,6 @@ export default function ActivityPage() {
       </>
     );
   } catch (error) {
-    console.error('Error parsing activity data:', error);
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <Text>Error loading activity. Please try again.</Text>

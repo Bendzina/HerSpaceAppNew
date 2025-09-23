@@ -47,7 +47,6 @@ export default function VerifyEmailScreen() {
           }
         }
       } catch (error) {
-        console.error('Error checking verification status:', error);
         if (isMounted) {
           setVerificationStatus('unverified');
         }
@@ -93,7 +92,6 @@ export default function VerifyEmailScreen() {
           : `Verification email has been sent to ${email}`
       );
     } catch (error: any) {
-      console.error('Resend error:', error);
       const errorMessage = error.response?.data?.detail || 
                          (language === "ka" 
                           ? "ვერ გაიგზავნა მეილი. სცადეთ თავიდან." 

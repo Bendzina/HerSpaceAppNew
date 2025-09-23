@@ -46,10 +46,10 @@ function InnerDrawer() {
         }
         verificationCheckTimeout = window.setTimeout(async () => {
           try {
-            const response = await checkEmailVerification(user.email);
             if (!isMounted) return;
-
-            if (!response.is_verified) {
+            const response = await checkEmailVerification(user.email);
+            
+            if (response && !response.is_verified) {
               if (!currentPath.includes('verify-email')) {
                 router.replace({
                   pathname: '/verify-email',
@@ -60,11 +60,11 @@ function InnerDrawer() {
               router.replace('/(tabs)');
             }
           } catch (error) {
-            console.error('Error checking verification status:', error);
+            // Handle verification check error silently
           }
         }, 500); // 500ms debounce
       } catch (error) {
-        console.error('Error in verification check:', error);
+        // Handle verification error silently
       }
     };
 

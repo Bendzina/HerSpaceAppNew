@@ -58,8 +58,6 @@ export default function RegisterScreen() {
       router.push(`/verify-email?email=${encodeURIComponent(userEmail)}` as any);
       
     } catch (error: any) {
-      console.error('Registration error:', error);
-      
       let errorMessage = language === "ka" 
         ? "რეგისტრაცია ვერ მოხერხდა. გთხოვთ სცადოთ თავიდან." 
         : "Registration failed. Please try again.";
@@ -82,15 +80,13 @@ export default function RegisterScreen() {
             const firstError = Object.values(data)[0];
             if (Array.isArray(firstError)) {
               errorMessage = firstError[0];
-            } else if (typeof firstError === 'string') {
-              errorMessage = firstError;
             }
           }
         } else if (error.message) {
           errorMessage = error.message;
         }
       } catch (parseError) {
-        console.error('Error parsing error response:', parseError);
+        // Handle parse error silently
       }
       
       Alert.alert(

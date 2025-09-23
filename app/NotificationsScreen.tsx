@@ -37,7 +37,6 @@ export default function NotificationsScreen() {
         const prefs = await loadPreferencesFromBackend();
         setSettings(prefs);
       } catch (error) {
-        console.error('Failed to load notification preferences', error);
         // Fallback to local storage
         const localPrefs = await getNotificationPreferences();
         setSettings(localPrefs);
@@ -61,7 +60,6 @@ export default function NotificationsScreen() {
       // Update in storage and sync with backend
       await updateNotificationPreferences(updatedSettings);
     } catch (error) {
-      console.error('Failed to update notification preference', error);
       // Revert on error
       setSettings(prev => ({ ...prev, [key]: !newValue }));
       Alert.alert('Error', 'Failed to update notification settings');
@@ -95,7 +93,6 @@ export default function NotificationsScreen() {
             try {
               await updateNotificationPreferences(defaultSettings);
             } catch (error) {
-              console.error('Failed to reset notification preferences', error);
               Alert.alert('Error', 'Failed to reset notification settings');
             }
           }

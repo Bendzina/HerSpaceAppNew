@@ -36,7 +36,6 @@ export default function MindfulScreen() {
       
       setActivities(data);
     } catch (err) {
-      console.error('Failed to load activities:', err);
       setError(language === 'ka' ? 'ვერ ჩაიტვირთა მედიტაციის აქტივობები' : 'Failed to load mindfulness activities');
     } finally {
       setLoading(false);
@@ -77,7 +76,6 @@ export default function MindfulScreen() {
       // Reset selection after navigation
       setSelectedActivity(null);
     } catch (error) {
-      console.error('Error tracking activity:', error);
       Alert.alert(
         language === 'ka' ? 'შეცდომა' : 'Error',
         language === 'ka'
