@@ -6,6 +6,9 @@ type Language = 'en' | 'ka';
 
 // English translations
 const enTranslations = {
+  common: {
+    start: 'Start',
+  },
   ai: {
     welcome: "Hello! I'm Dagi, your AI assistant for mental well-being. How can I support you today? 🌟",
     typing: "Dagi is typing...",
@@ -24,6 +27,29 @@ const enTranslations = {
     accountManagement: 'Account Management',
     helpSupport: 'Help & Support',
     permissionRequired: 'Permission to access gallery is required!',
+  },
+  rituals: {
+    filters: {
+      all: 'All',
+      gentle: 'Gentle',
+      empowering: 'Empowering',
+      grounding: 'Grounding',
+      uplifting: 'Uplifting',
+      healing: 'Healing',
+    },
+    phases: {
+      motherhood: 'Motherhood',
+      any: 'Any Phase',
+      all: 'All Phases'
+    },
+    minutes: 'min',
+    filterByTone: 'Filter by Tone',
+    lifePhase: 'Life Phase',
+    sacredRituals: 'Sacred Rituals',
+    nurtureYourSoul: 'Nurture your soul with daily rituals',
+    noRitualsFound: 'No rituals found',
+    searchYourPerfectRitual: 'Search your perfect ritual',
+    openHistory: 'Open ritual history',
   },
   notifications: {
     title: 'Notifications',
@@ -98,6 +124,30 @@ const enTranslations = {
     passwordChanged: 'Your password has been successfully changed',
     ok: 'OK',
   },
+  ritualDetails: {
+    helpful: 'Helpful',
+    notReally: 'Not really',
+    rate: 'Rate effectiveness',
+    notes: 'Notes (optional)',
+    notesPlaceholder: 'How do you feel now?',
+    start: 'Start',
+    starting: 'Starting…',
+    done: 'Done',
+    saving: 'Saving…',
+    saved: 'Saved. Thank you for sharing.',
+    failedStart: 'Failed to start ritual',
+    failedSave: 'Failed to save',
+    notFound: 'Ritual not found.',
+  },
+  ritualHistory: {
+    back: 'Back',
+    myRituals: 'My Rituals',
+    total: 'Total',
+    helpful: 'Helpful',
+    avgRating: 'Avg Rating',
+    notReally: 'Not really',
+    noHistory: 'No history yet.',
+  },
   settings: {
     title: 'Settings',
     appearance: 'Appearance',
@@ -121,24 +171,50 @@ const enTranslations = {
 
 // Georgian translations
 const kaTranslations = {
+  common: {
+    start: 'დაწყება',
+  },
   ai: {
-    welcome: "გამარჯობა! მე ვარ Dagi, შენი AI ასისტენტი მენტალური კეთილდღეობისთვის. როგორ შემიძლია დაგეხმარო დღეს? 🌟",
+    welcome: "გამარჯობა! მე ვარ Dagi, შენი AI ასისტენტი მენტალური კეთილდღეობისთვის. როგორ შემიძლია დაგეხმარო დღეს? ",
     typing: "Dagi წერს...",
     tarot: "ტაროს გაშლა",
   },
   profile: {
     title: 'პროფილი',
-    userName: 'სოფია კარტერი',
-    subtitle: 'შინაგანი განვითარება',
-    joined: 'შემოვიდა 2022',
+    userName: 'სოფიო კარტერი',
+    subtitle: 'შეგნებული მოგზაურობა',
+    joined: 'შეუერთდა 2022',
     settings: 'პარამეტრები',
-    dayStreak: 'დღეების ჯაჭვი',
-    ritualsCompleted: 'დასრულებული რიტუალები',
-    journalEntries: 'დღიურის ჩანაწერები',
+    dayStreak: 'დღეების სერია',
+    ritualsCompleted: 'შესრულებული რიტუალები',
+    journalEntries: 'ჩანაწერები',
     notifications: 'შეტყობინებები',
     accountManagement: 'ანგარიშის მართვა',
-    helpSupport: 'დახმარება',
+    helpSupport: 'დახმარება და მხარდაჭერა',
     permissionRequired: 'გალერეაზე წვდომის ნებართვა საჭიროა!',
+  },
+  rituals: {
+    filters: {
+      all: 'ყველა',
+      gentle: 'ზრუნვიანი',
+      empowering: 'გამაძლიერებელი',
+      grounding: 'დამამშვიდებელი',
+      uplifting: 'ამაღელვებელი',
+      healing: 'მკურნალობითი',
+    },
+    phases: {
+      motherhood: 'დედობა',
+      any: 'ნებისმიერი ფაზა',
+      all: 'ყველა ფაზა'
+    },
+    minutes: 'წთ',
+    filterByTone: 'გაფილტრე ტონით',
+    lifePhase: 'ცხოვრებისეული ფაზა',
+    sacredRituals: 'წმინდა რიტუალები',
+    nurtureYourSoul: 'გაამახვილე სული ყოველდღიურ რიტუალებზე',
+    noRitualsFound: 'რიტუალები ვერ მოიძებნა',
+    searchYourPerfectRitual: 'იპოვე შენთვის სასურველი რიტუალი',
+    openHistory: 'რიტუალების ისტორიის ნახვა',
   },
   notifications: {
     title: 'შეტყობინებები',
@@ -213,7 +289,31 @@ const kaTranslations = {
     passwordChanged: 'პაროლი წარმატებით შეიცვალა',
     ok: 'კარგი',
   },
-settings: {
+  ritualDetails: {
+    helpful: 'სასარგებლო',
+    notReally: 'ძალიან არა',
+    rate: 'შეაფასე ეფექტურობა',
+    notes: 'შენიშვნები (სურვილისამებრ)',
+    notesPlaceholder: 'როგორ გრძნობ თავს ახლა?',
+    start: 'დაწყება',
+    starting: 'იწყება…',
+    done: 'დასრულდა',
+    saving: 'ინახება…',
+    saved: 'შენახულია. გმადლო გაზიარებისთვის.',
+    failedStart: 'რიტუალის დაწყება ვერ მოხერხდა',
+    failedSave: 'შენახვა ვერ მოხერხდა',
+    notFound: 'რიტუალი ვერ მოიძებნა.',
+  },
+  ritualHistory: {
+    back: 'უკან',
+    myRituals: 'ჩემი რიტუალები',
+    total: 'სულ',
+    helpful: 'სასარგებლო',
+    avgRating: 'საშ. ქულა',
+    notReally: 'ძალიან არა',
+    noHistory: 'ჯერჯერობით ისტორია არ არის.',
+  },
+  settings: {
     title: 'პარამეტრები',
     appearance: 'გარეგნობა',
     darkMode: 'მუქი რეჟიმი',

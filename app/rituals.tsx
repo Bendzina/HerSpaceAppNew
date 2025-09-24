@@ -3,32 +3,39 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, RefreshC
 import { Ionicons } from '@expo/vector-icons';
 import { listRituals, type Ritual } from '@/services/ritualService';
 import { useTheme } from './ThemeContext';
+import { useLanguage } from './LanguageContext';
 import { Stack, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
 
-const tones = [
-  { id: 'all', label: 'All', emoji: '✨', gradient: ['#FFE5F1', '#F8E8FF'] },
-  { id: 'gentle', label: 'Gentle', emoji: '🌸', gradient: ['#FFE5F1', '#FFF0F5'] },
-  { id: 'empowering', label: 'Empowering', emoji: '💪', gradient: ['#FF6B9D', '#C44569'] },
-  { id: 'grounding', label: 'Grounding', emoji: '🌱', gradient: ['#8FBC8F', '#98D8C8'] },
-  { id: 'uplifting', label: 'Uplifting', emoji: '☀️', gradient: ['#F8B500', '#FFD700'] },
-  { id: 'healing', label: 'Healing', emoji: '💜', gradient: ['#DDA0DD', '#E6E6FA'] },
-] as const;
-
-const phases = [
-  { id: 'motherhood', label: 'Motherhood', emoji: '🤱', color: '#FF6B9D' },
-  { id: 'any', label: 'Any Phase', emoji: '🌟', color: '#8B5CF6' },
-  { id: 'all', label: 'All Phases', emoji: '🌙', color: '#06B6D4' },
-] as const;
-
 export default function RitualsScreen() {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const router = useRouter();
+  
+  // Get translations for tones and phases
+  const toneLabels = t.rituals.filters;
+  const phaseLabels = t.rituals.phases;
   const [loading, setLoading] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
   const [search, setSearch] = React.useState('');
+  
+  const tones = [
+    { id: 'all', label: toneLabels.all, emoji: '✨', gradient: ['#FFE5F1', '#F8E8FF'] },
+    { id: 'gentle', label: toneLabels.gentle, emoji: '🌸', gradient: ['#FFE5F1', '#FFF0F5'] },
+    { id: 'empowering', label: toneLabels.empowering, emoji: '💪', gradient: ['#FF6B9D', '#C44569'] },
+    { id: 'grounding', label: toneLabels.grounding, emoji: '🌱', gradient: ['#8FBC8F', '#98D8C8'] },
+    { id: 'uplifting', label: toneLabels.uplifting, emoji: '☀️', gradient: ['#F8B500', '#FFD700'] },
+    { id: 'healing', label: toneLabels.healing, emoji: '💜', gradient: ['#DDA0DD', '#E6E6FA'] },
+  ] as const;
+  
+  const phases = [
+    { id: 'motherhood', label: phaseLabels.motherhood, emoji: '🤱', color: '#FF6B9D' },
+    { id: 'any', label: phaseLabels.any, emoji: '🌟', color: '#8B5CF6' },
+    { id: 'all', label: phaseLabels.all, emoji: '🌙', color: '#06B6D4' },
+  ] as const;
+  
   const [tone, setTone] = React.useState<(typeof tones)[number]['id']>('all');
   const [phase, setPhase] = React.useState<(typeof phases)[number]['id']>('motherhood');
   const [items, setItems] = React.useState<Ritual[]>([]);
@@ -92,7 +99,9 @@ export default function RitualsScreen() {
         </View>
         <View style={styles.durationBadge}>
           <Ionicons name="time-outline" size={12} color="#FF6B9D" />
-          <Text style={styles.durationText}>{item.duration_minutes}min</Text>
+          <Text style={[styles.sectionSubtitle, { color: colors.text }]}>
+            {item.duration_minutes} {t.rituals.minutes}
+          </Text>
         </View>
       </View>
 
@@ -120,10 +129,10 @@ export default function RitualsScreen() {
 
       {/* Card Footer */}
       <View style={styles.cardFooter}>
-        <Text style={[styles.cardNumber, { color: colors.textSecondary }]}>
+        <Text style={styles.cardNumber}>
           #{(index + 1).toString().padStart(2, '0')}
         </Text>
-        <Text style={styles.startText}>Start →</Text>
+        <Text style={styles.startText}>{t.common.start}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -137,12 +146,12 @@ export default function RitualsScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
-          title: 'Sacred Rituals',
+          title: t.rituals.sacredRituals,
           headerTitleStyle: { fontSize: 24, fontWeight: '700' },
           headerRight: () => (
             <TouchableOpacity
               onPress={() => router.push({ pathname: '/rituals/history' } as never)}
-              accessibilityLabel="Open history"
+              accessibilityLabel={t.rituals.openHistory}
               style={styles.headerButton}
             >
               <LinearGradient
@@ -165,8 +174,8 @@ export default function RitualsScreen() {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
-        <Text style={styles.heroTitle}>✨ Your Daily Rituals</Text>
-        <Text style={styles.heroSubtitle}>Nurture your soul with mindful practices</Text>
+        <Text style={styles.heroTitle}>{t.rituals.sacredRituals}</Text>
+        <Text style={styles.heroSubtitle}>{t.rituals.nurtureYourSoul}</Text>
       </LinearGradient>
 
       {/* Search and filters */}
@@ -175,7 +184,7 @@ export default function RitualsScreen() {
         <View style={[styles.searchBox, { borderColor: colors.border, backgroundColor: colors.surface }]}>
           <Ionicons name="search-outline" size={20} color="#FF6B9D" />
           <TextInput
-            placeholder="Search your perfect ritual..."
+            placeholder={t.rituals.searchYourPerfectRitual}
             placeholderTextColor={colors.textSecondary}
             value={search}
             onChangeText={(t) => setSearch(t)}
@@ -185,7 +194,7 @@ export default function RitualsScreen() {
         </View>
 
         {/* Life phase filter */}
-        <Text style={[styles.filterLabel, { color: colors.text }]}>Life Phase</Text>
+        <Text style={[styles.sectionTitle, { color: colors.primary }]}>{t.rituals.lifePhase}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
           <View style={styles.filterRow}>
             {phases.map(p => {
@@ -214,7 +223,7 @@ export default function RitualsScreen() {
         </ScrollView>
 
         {/* Tone filter */}
-        <Text style={[styles.filterLabel, { color: colors.text }]}>Emotional Tone</Text>
+        <Text style={[styles.sectionTitle, { color: colors.primary }]}>{t.rituals.filterByTone}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
           <View style={styles.filterRow}>
             {tones.map(t => {
@@ -269,7 +278,7 @@ export default function RitualsScreen() {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyEmoji}>🌸</Text>
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>No rituals found</Text>
+              <Text style={[styles.sectionTitle, { color: colors.primary }]}>{t.rituals.noRitualsFound}</Text>
               <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
                 Try adjusting your filters to discover new practices
               </Text>
@@ -454,10 +463,22 @@ const styles = StyleSheet.create({
     borderColor: '#FFE5F1',
   },
   durationText: {
-    marginLeft: 4,
     fontSize: 12,
-    fontWeight: '600',
-    color: '#FF6B9D',
+    marginLeft: 4,
+    fontFamily: 'SpaceMono',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: 20,
+    marginBottom: 10,
+    marginLeft: 16,
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 16,
+    marginLeft: 16,
   },
   cardContent: {
     marginBottom: 16,

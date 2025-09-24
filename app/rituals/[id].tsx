@@ -14,37 +14,7 @@ export default function RitualDetailScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { language } = useLanguage();
-  const t = translations[language] || translations.en;
-  const L = (language === 'ka') ? {
-    helpful: 'სასარგებლო',
-    notReally: 'ძალიან არა',
-    rate: 'შეაფასე ეფექტურობა',
-    notes: 'შენიშვნები (სურვილისამებრ)',
-    notesPh: 'როგორ გრძნობ თავს ახლა?',
-    start: 'დაწყება',
-    starting: 'იწყება…',
-    done: 'დასრულდა',
-    saving: 'ინახება…',
-    saved: 'შენახულია. გმადლო გაზიარებისთვის.',
-    failedStart: 'რიტუალის დაწყება ვერ მოხერხდა',
-    failedSave: 'შენახვა ვერ მოხერხდა',
-    notFound: 'რიტუალი ვერ მოიძებნა.'
-  } : {
-    helpful: 'Helpful',
-    notReally: 'Not really',
-    rate: 'Rate effectiveness',
-    notes: 'Notes (optional)',
-    notesPh: 'How do you feel now?',
-    start: 'Start',
-    starting: 'Starting…',
-    done: 'Done',
-    saving: 'Saving…',
-    saved: 'Saved. Thank you for sharing.',
-    failedStart: 'Failed to start ritual',
-    failedSave: 'Failed to save',
-    notFound: 'Ritual not found.'
-  };
+  const { t } = useLanguage();
 
   const [loading, setLoading] = React.useState(true);
   const [ritual, setRitual] = React.useState<Ritual | null>(null);
@@ -71,10 +41,17 @@ export default function RitualDetailScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}> 
-      <Stack.Screen options={{ headerShown: false }} />
+      <Stack.Screen
+        options={{
+          title: ritual?.title || t.ritualDetails.notFound,
+          headerTitleStyle: { color: colors.text },
+          headerTintColor: colors.text,
+          headerStyle: { backgroundColor: colors.background },
+          headerBackTitle: '',
+        }}/>
 
       <View style={[styles.header, { backgroundColor: colors.background, paddingTop: insets.top + 4 }]}> 
-        <TouchableOpacity onPress={() => router.back()} accessibilityLabel={language === 'ka' ? 'უკან' : 'Back'} style={{ paddingRight: 8, paddingVertical: 4 }}>
+        <TouchableOpacity onPress={() => router.back()} accessibilityLabel="Go back" style={{ paddingRight: 8, paddingVertical: 4 }}>
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <View style={{ width: 24 }} />
@@ -116,28 +93,28 @@ export default function RitualDetailScreen() {
       {/* Done + Rating Sheet */}
       {/* Inline completion controls */}
       <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
-        <Text style={{ color: colors.textSecondary }}>{L.helpful}</Text>
+        <Text style={{ color: colors.textSecondary }}>{t.ritualDetails.helpful}</Text>
         <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
           <TouchableOpacity onPress={() => setWasHelpful(true)} style={[styles.choice, { borderColor: wasHelpful === true ? colors.primary : colors.border, backgroundColor: wasHelpful === true ? colors.primary + '22' : 'transparent' }]}>
             <Ionicons name="happy" size={18} color={wasHelpful === true ? colors.primary : colors.textSecondary} />
-            <Text style={{ marginLeft: 6, color: colors.text }}>{L.helpful}</Text>
+            <Text style={{ marginLeft: 6, color: colors.text }}>{t.ritualDetails.helpful}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setWasHelpful(false)} style={[styles.choice, { borderColor: wasHelpful === false ? colors.primary : colors.border, backgroundColor: wasHelpful === false ? colors.primary + '22' : 'transparent' }]}>
             <Ionicons name="sad" size={18} color={wasHelpful === false ? colors.primary : colors.textSecondary} />
-            <Text style={{ marginLeft: 6, color: colors.text }}>{L.notReally}</Text>
+            <Text style={{ marginLeft: 6, color: colors.text }}>{t.ritualDetails.notReally}</Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={{ color: colors.textSecondary, marginTop: 14 }}>{L.rate}</Text>
+        <Text style={{ color: colors.textSecondary, marginTop: 14 }}>{t.ritualDetails.rate}</Text>
         <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
           {[1,2,3,4,5].map(n => (
             <TouchableOpacity key={n} onPress={() => setRating(n)} style={[styles.rateDot, { backgroundColor: n <= rating ? colors.primary : 'transparent', borderColor: colors.primary }]} />
           ))}
         </View>
 
-        <Text style={{ color: colors.textSecondary, marginTop: 14 }}>{L.notes}</Text>
+        <Text style={{ color: colors.textSecondary, marginTop: 14 }}>{t.ritualDetails.notes}</Text>
         <TextInput
-          placeholder={L.notesPh}
+          placeholder={t.ritualDetails.notesPlaceholder}
           placeholderTextColor={colors.textSecondary}
           value={notes}
           onChangeText={setNotes}
@@ -165,13 +142,13 @@ export default function RitualDetailScreen() {
                   setTracking(true);
                   await trackRitualUsage({ ritual: ritual.id });
                 } catch (e: any) {
-                  Alert.alert('', e?.message || L.failedStart);
+                  Alert.alert('', e?.message || t.ritualDetails.failedStart);
                 } finally {
                   setTracking(false);
                 }
               }}
             >
-              <Text style={styles.primaryBtnText}>{tracking ? L.starting : L.start}</Text>
+              <Text style={styles.primaryBtnText}>{tracking ? t.ritualDetails.starting : t.ritualDetails.start}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -188,21 +165,21 @@ export default function RitualDetailScreen() {
                     effectiveness_rating: rating || undefined,
                     notes: notes || undefined,
                   });
-                  Alert.alert('', L.saved);
+                  Alert.alert('', t.ritualDetails.saved);
                 } catch (e: any) {
-                  Alert.alert('', e?.message || L.failedSave);
+                  Alert.alert('', e?.message || t.ritualDetails.failedSave);
                 } finally {
                   setSubmitting(false);
                 }
               }}
             >
-              <Text style={styles.primaryBtnText}>{submitting ? L.saving : L.done}</Text>
+              <Text style={styles.primaryBtnText}>{submitting ? t.ritualDetails.saving : t.ritualDetails.done}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
       ) : (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: colors.textSecondary }}>{L.notFound}</Text>
+          <Text style={{ color: colors.textSecondary }}>{t.ritualDetails.notFound}</Text>
         </View>
       )}
     </View>

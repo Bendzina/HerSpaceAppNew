@@ -11,24 +11,7 @@ export default function RitualHistoryScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { language } = useLanguage();
-  const L = (language === 'ka') ? {
-    back: 'უკან',
-    myRituals: 'ჩემი რიტუალები',
-    total: 'სულ',
-    helpful: 'სასარგებლო',
-    avgRating: 'საშ. ქულა',
-    notReally: 'ძალიან არა',
-    noHistory: 'ჯერჯერობით ისტორია არ არის.',
-  } : {
-    back: 'Back',
-    myRituals: 'My Rituals',
-    total: 'Total',
-    helpful: 'Helpful',
-    avgRating: 'Avg Rating',
-    notReally: 'Not really',
-    noHistory: 'No history yet.',
-  };
+  const { t } = useLanguage();
   const [loading, setLoading] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
   const [data, setData] = React.useState<RitualHistoryResponse | null>(null);
@@ -93,10 +76,10 @@ export default function RitualHistoryScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={[styles.header, { backgroundColor: colors.background, paddingTop: insets.top + 6 }]}> 
-        <TouchableOpacity onPress={() => router.back()} accessibilityLabel={L.back} style={{ paddingHorizontal: 8 }}>
+        <TouchableOpacity onPress={() => router.back()} accessibilityLabel={t.ritualHistory.back} style={{ paddingHorizontal: 8 }}>
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>{L.myRituals}</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t.ritualHistory.myRituals}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -115,21 +98,21 @@ export default function RitualHistoryScreen() {
             <View style={[styles.stats, { borderColor: colors.border, backgroundColor: colors.surface }]}> 
               <View style={styles.statItem}>
                 <Text style={[styles.statValue, { color: colors.text }]}>{data.stats.total_rituals_used}</Text>
-                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{L.total}</Text>
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t.ritualHistory.total}</Text>
               </View>
               <View style={styles.statItem}>
                 <Text style={[styles.statValue, { color: colors.text }]}>{data.stats.helpful_rituals}</Text>
-                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{L.helpful}</Text>
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t.ritualHistory.helpful}</Text>
               </View>
               <View style={styles.statItem}>
                 <Text style={[styles.statValue, { color: colors.text }]}>{data.stats.average_rating ?? '—'}</Text>
-                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{L.avgRating}</Text>
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t.ritualHistory.avgRating}</Text>
               </View>
             </View>
           ) : null}
           ListEmptyComponent={
             <View style={{ padding: 16 }}>
-              <Text style={{ textAlign: 'center', color: colors.textSecondary }}>{L.noHistory}</Text>
+              <Text style={{ textAlign: 'center', color: colors.textSecondary }}>{t.ritualHistory.noHistory}</Text>
             </View>
           }
         />
