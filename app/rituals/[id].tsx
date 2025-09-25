@@ -51,7 +51,7 @@ export default function RitualDetailScreen() {
         }}/>
 
       <View style={[styles.header, { backgroundColor: colors.background, paddingTop: insets.top + 4 }]}> 
-        <TouchableOpacity onPress={() => router.back()} accessibilityLabel="Go back" style={{ paddingRight: 8, paddingVertical: 4 }}>
+        <TouchableOpacity onPress={() => router.replace('/rituals')} accessibilityLabel="Go back to rituals" style={{ paddingRight: 8, paddingVertical: 4 }}>
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <View style={{ width: 24 }} />

@@ -8,7 +8,6 @@ interface ActivityData {
   title: string;
   description: string;
   duration_minutes: number;
-  audio_file?: string;
   image?: string;
   [key: string]: any; // Allow additional properties
 }

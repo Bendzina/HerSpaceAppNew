@@ -76,7 +76,7 @@ export default function RitualHistoryScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={[styles.header, { backgroundColor: colors.background, paddingTop: insets.top + 6 }]}> 
-        <TouchableOpacity onPress={() => router.back()} accessibilityLabel={t.ritualHistory.back} style={{ paddingHorizontal: 8 }}>
+        <TouchableOpacity onPress={() => router.replace('/rituals')} accessibilityLabel="Go back to rituals" style={{ paddingHorizontal: 8 }}>
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>{t.ritualHistory.myRituals}</Text>

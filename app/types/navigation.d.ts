@@ -12,5 +12,6 @@ declare global {
   }
 }
 
-// This makes the file a module
-export {};
+// Default export to satisfy the warning
+const navigationTypes = {};
+export default navigationTypes;

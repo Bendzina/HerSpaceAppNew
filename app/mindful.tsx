@@ -16,8 +16,6 @@ import { useTheme } from './ThemeContext';
 import { useLanguage } from './LanguageContext';
 import { getMindfulnessActivities, trackMindfulnessActivity, MindfulnessActivity } from '../services/mindfulnessService';
 import { useRouter } from 'expo-router';
-import { Audio } from 'expo-av';
-
 const { width } = Dimensions.get('window');
 
 export default function MindfulScreen() {
@@ -30,12 +28,19 @@ export default function MindfulScreen() {
 
   const loadActivities = useCallback(async () => {
     try {
+      console.log('Loading activities...');
       setLoading(true);
       setError(null);
       const data = await getMindfulnessActivities(language);
+      console.log('Activities loaded:', data);
+      
+      if (!data || data.length === 0) {
+        console.warn('No activities found in the response');
+      }
       
       setActivities(data);
     } catch (err) {
+      console.error('Error loading activities:', err);
       setError(language === 'ka' ? 'ვერ ჩაიტვირთა მედიტაციის აქტივობები' : 'Failed to load mindfulness activities');
     } finally {
       setLoading(false);
@@ -54,22 +59,11 @@ export default function MindfulScreen() {
       // Track the activity start
       await trackMindfulnessActivity(activity.id);
       
-      // Ensure audio file URL is properly formatted
-      const activityWithFullUrl = {
-        ...activity,
-        // Ensure the audio file URL is absolute if it's a relative path
-        audio_file: activity.audio_file 
-          ? activity.audio_file.startsWith('http') 
-            ? activity.audio_file 
-            : `http://192.168.100.4:8000${activity.audio_file.startsWith('/') ? '' : '/'}${activity.audio_file}`
-          : undefined
-      };
-      
-      // Navigate to the activity screen with the full URL
+      // Navigate to the activity screen
       router.push({
         pathname: '/activity',
         params: { 
-          activity: JSON.stringify(activityWithFullUrl)
+          activity: JSON.stringify(activity)
         }
       } as any);
       
@@ -101,7 +95,6 @@ export default function MindfulScreen() {
   const renderActivityCard = (activity: MindfulnessActivity) => {
     const isSelected = selectedActivity === activity.id.toString();
     const categoryColor = getCategoryColor(activity.category);
-    const hasAudio = !!activity.audio_file;
     
     return (
       <TouchableOpacity
@@ -164,15 +157,6 @@ export default function MindfulScreen() {
               {activity.duration_minutes} min
             </Text>
           </View>
-          
-          {activity.audio_file && (
-            <View style={styles.audioBadge}>
-              <Ionicons name="musical-notes" size={14} color={colors.textSecondary} />
-              <Text style={[styles.audioText, { color: colors.textSecondary }]}>
-                {language === 'ka' ? 'აუდიო' : 'Audio'}
-              </Text>
-            </View>
-          )}
         </View>
         
         {isSelected && (
@@ -287,13 +271,17 @@ const styles = StyleSheet.create({
   activitiesContainer: {
     flex: 1,
     width: '100%',
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
   scrollContainer: {
     padding: 16,
     paddingBottom: 32,
   },
   header: {
-    marginBottom: 24,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    marginBottom: 16,
   },
   title: {
     fontSize: 28,
@@ -372,18 +360,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   durationText: {
-    fontSize: 12,
-    marginLeft: 4,
-  },
-  audioBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  audioText: {
     fontSize: 12,
     marginLeft: 4,
   },
