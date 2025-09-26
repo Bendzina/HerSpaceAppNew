@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../ThemeContext';
 import { useLanguage } from '../LanguageContext';
-import { aiService } from '../../services/aiService';
+import dagiAIService from '../../services/dagiAIService';
 
 const { width } = Dimensions.get('window');
 
@@ -24,6 +24,18 @@ interface Message {
   text: string;
   isUser: boolean;
   timestamp: Date;
+  isTarotReading?: boolean;
+  tarotData?: any;
+}
+
+interface TarotCard {
+  id: number;
+  name: string;
+  description: string;
+  suit: string;
+  is_major_arcana: boolean;
+  is_reversed: boolean;
+  meanings: string[];
 }
 
 export default function DagiAIScreen() {
@@ -38,7 +50,7 @@ export default function DagiAIScreen() {
       timestamp: new Date(),
     },
   ]);
-  
+
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -59,20 +71,31 @@ export default function DagiAIScreen() {
     setIsTyping(true);
 
     try {
-      const aiResponseText = await aiService.sendMessage(
-        [{ role: 'user', content: currentInput }],
-        language
-      );
+      const response = await dagiAIService.sendMessage(currentInput);
+
+      let aiResponseText = response.message;
+      let isTarotReading = false;
+      let tarotData = null;
+
+      // If this was a tarot reading, format the response nicely
+      if (response.reading) {
+        isTarotReading = true;
+        tarotData = response.reading;
+        aiResponseText = formatTarotReading(response.reading);
+      }
 
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
         text: aiResponseText,
         isUser: false,
         timestamp: new Date(),
+        isTarotReading,
+        tarotData,
       };
 
       setMessages(prev => [...prev, aiResponse]);
-    } catch {
+    } catch (error) {
+      console.error('Error sending message:', error);
       const errorResponse: Message = {
         id: (Date.now() + 1).toString(),
         text: language === 'ka'
@@ -89,6 +112,44 @@ export default function DagiAIScreen() {
     setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
   };
 
+  const formatTarotReading = (reading: any): string => {
+    if (language === 'ka') {
+      return `🔮 ტაროს გაშლა: ${reading.prompt_type === 'single_card' ? 'ერთი კარტი' : reading.prompt_type === 'three_card' ? 'სამი კარტი' : 'კარტები'}
+
+${reading.interpretation}
+
+💡 რჩევა: ${reading.advice}
+
+${reading.temporary_note ? `\n📝 ${reading.temporary_note}` : ''}`;
+    } else {
+      return `🔮 Tarot Reading: ${reading.prompt_type === 'single_card' ? 'Single Card' : reading.prompt_type === 'three_card' ? 'Three Card' : 'Cards'}
+
+${reading.interpretation}
+
+💡 Advice: ${reading.advice}
+
+${reading.temporary_note ? `\n📝 ${reading.temporary_note}` : ''}`;
+    }
+  };
+
+  const renderTarotCards = (cards: TarotCard[]) => {
+    return cards.map((card, index) => (
+      <View key={index} style={[styles.tarotCard, { backgroundColor: colors.surface }]}>
+        <Text style={[styles.cardName, { color: colors.text }]}>
+          {card.is_reversed ? '🔄 ' : ''}{card.name}
+        </Text>
+        <Text style={[styles.cardSuit, { color: colors.textSecondary }]}>
+          {card.suit} {card.is_major_arcana ? '(Major Arcana)' : ''}
+        </Text>
+        {card.meanings && card.meanings.length > 0 && (
+          <Text style={[styles.cardMeaning, { color: colors.textSecondary }]}>
+            • {card.meanings[0]}
+          </Text>
+        )}
+      </View>
+    ));
+  };
+
   const drawTarot = async () => {
     setIsTyping(true);
 
@@ -97,25 +158,35 @@ export default function DagiAIScreen() {
       : "Draw one tarot card and give a warm, supportive interpretation in English.";
 
     try {
-      const aiResponseText = await aiService.sendMessage(
-        [{ role: 'user', content: tarotPrompt }],
-        language
-      );
+      const response = await dagiAIService.sendMessage(tarotPrompt);
+
+      let aiResponseText = response.message;
+      let isTarotReading = false;
+      let tarotData = null;
+
+      if (response.reading) {
+        isTarotReading = true;
+        tarotData = response.reading;
+        aiResponseText = formatTarotReading(response.reading);
+      }
 
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
         text: aiResponseText,
         isUser: false,
         timestamp: new Date(),
+        isTarotReading,
+        tarotData,
       };
 
       setMessages(prev => [...prev, aiResponse]);
-    } catch {
+    } catch (error) {
+      console.error('Error drawing tarot:', error);
       const errorResponse: Message = {
         id: (Date.now() + 1).toString(),
         text: language === 'ka'
-          ? 'ტაროს კარტის გაშლა ვერ მოხერხდა 🙏'
-          : 'Tarot draw failed 🙏',
+          ? 'უკაცრავად, ტაროს გაშლა ვერ მოხერხდა 🙏'
+          : 'Sorry, could not perform tarot reading 🙏',
         isUser: false,
         timestamp: new Date(),
       };
@@ -186,7 +257,7 @@ export default function DagiAIScreen() {
         >
           {messages.map((message: Message, index) => (
             <View key={message.id} style={[
-              styles.messageContainer, 
+              styles.messageContainer,
               message.isUser ? styles.userMessage : styles.aiMessage
             ]}>
               <View style={[
@@ -215,12 +286,19 @@ export default function DagiAIScreen() {
                       </View>
                     </View>
                     <Text style={[styles.aiMessageText, { color: colors.text }]}>{message.text}</Text>
+
+                    {/* Display tarot cards if this message contains tarot data */}
+                    {message.isTarotReading && message.tarotData?.cards_drawn && (
+                      <View style={styles.tarotCardsContainer}>
+                        {renderTarotCards(message.tarotData.cards_drawn)}
+                      </View>
+                    )}
                   </View>
                 )}
               </View>
               <Text style={[styles.messageTime, { color: colors.textSecondary }]}>
-                {message.timestamp.toLocaleTimeString('en-US', { 
-                  hour: '2-digit', 
+                {message.timestamp.toLocaleTimeString('en-US', {
+                  hour: '2-digit',
                   minute: '2-digit',
                   hour12: false
                 })}
@@ -294,11 +372,11 @@ export default function DagiAIScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { 
+  container: {
     flex: 1,
   },
-  flex: { 
-    flex: 1 
+  flex: {
+    flex: 1
   },
   headerGradient: {
     paddingTop: 60,
@@ -312,8 +390,8 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  headerContent: { 
-    flexDirection: 'row', 
+  headerContent: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center'
   },
@@ -325,26 +403,26 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
-  avatar: { 
-    width: 60, 
-    height: 60, 
-    borderRadius: 30, 
-    alignItems: 'center', 
+  avatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: { 
-    fontSize: 28 
+  avatarText: {
+    fontSize: 28
   },
-  headerInfo: { 
+  headerInfo: {
     alignItems: 'center'
   },
-  headerTitle: { 
+  headerTitle: {
     fontSize: 32,
     fontWeight: '700',
     color: '#2D3748',
     marginBottom: 4
   },
-  headerSubtitle: { 
+  headerSubtitle: {
     fontSize: 16,
     color: '#718096',
     fontWeight: '500',
@@ -364,20 +442,20 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   actionGradient: {
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    paddingHorizontal: 24, 
-    paddingVertical: 14, 
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
     borderRadius: 25,
   },
-  actionText: { 
-    fontSize: 16, 
-    marginLeft: 8, 
+  actionText: {
+    fontSize: 16,
+    marginLeft: 8,
     fontWeight: '600',
     color: '#FFF',
     letterSpacing: 0.5
   },
-  messagesContainer: { 
+  messagesContainer: {
     flex: 1,
   },
   messagesContent: {
@@ -385,15 +463,15 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 20,
   },
-  messageContainer: { 
+  messageContainer: {
     marginVertical: 8,
     maxWidth: width * 0.85,
   },
-  userMessage: { 
+  userMessage: {
     alignItems: 'flex-end',
     alignSelf: 'flex-end'
   },
-  aiMessage: { 
+  aiMessage: {
     alignItems: 'flex-start',
     alignSelf: 'flex-start'
   },
@@ -463,6 +541,33 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     fontWeight: '400'
   },
+  // Tarot card styles
+  tarotCardsContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 107, 157, 0.1)',
+  },
+  tarotCard: {
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 157, 0.2)',
+  },
+  cardName: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  cardSuit: {
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  cardMeaning: {
+    fontSize: 12,
+    fontStyle: 'italic',
+  },
   messageTime: {
     fontSize: 12,
     marginTop: 4,
@@ -480,9 +585,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF6B9D',
     marginHorizontal: 2,
   },
-  typingDot1: {
-    // Animation would be added here in a real implementation
-  },
+  typingDot1: {},
   typingDot2: {
     opacity: 0.7,
   },

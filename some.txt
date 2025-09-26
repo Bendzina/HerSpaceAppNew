@@ -1,0 +1,16 @@
+class GPTAssistantView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = GPTPromptSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        prompt = serializer.validated_data['prompt']
+
+        # Check if this is a tarot-related request
+        if 'tarot' in prompt.lower() or 'card' in prompt.lower() or 'reading' in prompt.lower():
+            return self.handle_tarot_request(request, prompt)
+        else:
+            return self.handle_general_ai_request(request, prompt)
+
+    def handle_tarot_request(self, request, prompt):
+        """Handle tarot-related requests"""
