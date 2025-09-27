@@ -7,7 +7,8 @@ interface User {
   id: number;
   username: string;
   email: string;
-  displayName?: string; // ✅ დამატებული displayName field
+  displayName?: string;
+  profileImage?: string; // ✅ Added profileImage
 }
 
 interface RegistrationResponse {

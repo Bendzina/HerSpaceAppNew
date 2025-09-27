@@ -67,7 +67,7 @@ const translations = {
 
 export default function ProfileScreen() {
   const { user, updateUserProfile } = useAuth();
-  const [image, setImage] = useState<string | null>(null);
+  const [image, setImage] = useState<string | null>(user?.profileImage || null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState('');
   const [stats, setStats] = useState({
@@ -118,6 +118,10 @@ export default function ProfileScreen() {
 
         if (profileResponse.ok) {
           const userData = await profileResponse.json();
+          
+          // Update AuthContext with the latest user data
+          await updateUserProfile(userData);
+          
           if (userData.profile_image) {
             const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.100.4:8000';
             const imageUrl = userData.profile_image.startsWith('http')
@@ -191,7 +195,7 @@ export default function ProfileScreen() {
           throw new Error(errorData.detail || 'Failed to upload image');
         }
 
-        // Update the user data in the UI
+        // Update the user data in the UI and context
         const updatedUser = await response.json();
         
         if (updatedUser.profile_image) {
@@ -202,6 +206,9 @@ export default function ProfileScreen() {
             : `${baseUrl}${updatedUser.profile_image.startsWith('/') ? '' : '/'}${updatedUser.profile_image}`;
             
           setImage(imageUrl);
+          
+          // Update AuthContext and AsyncStorage with the new profile image
+          await updateUserProfile({ profileImage: imageUrl });
         }
       }
     } catch (error: any) {
