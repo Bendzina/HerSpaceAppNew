@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../ThemeContext';
-import { useLanguage } from '../LanguageContext';
+import { useTheme } from './ThemeContext';
+import { useLanguage } from './LanguageContext';
 import { listMoodCheckIns, type MoodCheckIn } from '@/services/moodService';
 import { getMoodAnalytics, type MoodAnalytics } from '@/services/analyticsService';
 

@@ -83,7 +83,6 @@ export default function TabLayout() {
             <Ionicons name="book" size={22} color={color} />
           ),
           headerShown: true,
-
         }}
       />
       <Tabs.Screen
@@ -95,16 +94,17 @@ export default function TabLayout() {
           ),
         }}
       />
-      {/* Mood tab removed: Flow goes Home -> FocusScreen -> MoodScreen, no direct tab */}
       <Tabs.Screen
-        name="progress"
+        name="community"
         options={{
-          title: 'Progress',
+          title: 'Community',
           tabBarIcon: ({ color }) => (
-            <Ionicons name="stats-chart" size={22} color={color} />
+            <Ionicons name="people" size={22} color={color} />
           ),
         }}
       />
+      {/* Progress moved to app directory, not in tabs */}
+      {/* Mood tab removed: Flow goes Home -> FocusScreen -> MoodScreen, no direct tab */}
     </Tabs>
   );
 }

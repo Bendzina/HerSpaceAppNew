@@ -134,7 +134,7 @@ export default function LoginScreen() {
             {/* Email Input */}
             <View style={styles.inputContainer}>
               <Text style={[styles.inputLabel, { color: isDark ? '#E2E8F0' : '#4A5568' }]}>
-                {language === "ka" ? "ელ-ფოსტა" : "Email"}
+                {language === "ka" ? "მომხმარებლის სახელი" : "Username"}
               </Text>
               <View style={[
                 styles.inputWrapper,

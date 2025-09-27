@@ -1,10 +1,10 @@
-import React from 'react';
-import { View, Text, Switch, StyleSheet } from 'react-native';
-import { DrawerContentScrollView, DrawerItem } from '@react-navigation/drawer';
-import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@/app/ThemeContext';
 import { useLanguage } from '@/app/LanguageContext';
+import { useTheme } from '@/app/ThemeContext';
 import { translations } from '@/i18n/translations';
+import { Ionicons } from '@expo/vector-icons';
+import { DrawerContentScrollView, DrawerItem } from '@react-navigation/drawer';
+import React from 'react';
+import { StyleSheet, Switch, Text, View } from 'react-native';
 
 export default function CustomDrawerContent(props: any) {
   const { isDark, setIsDark, colors } = useTheme();
@@ -19,15 +19,23 @@ export default function CustomDrawerContent(props: any) {
     { name: '(tabs)', label: t.home, icon: 'home-outline' },
     { name: 'motherhood/index', label: t.motherhood, icon: 'woman-outline' },
     { name: 'rituals', label: t.rituals, icon: 'leaf-outline' },
+    
+    { name: 'mindful', label: t.mindful, icon: 'medkit-outline' },
     { name: 'community/index', label: 'Community', icon: 'people-outline' },
     { name: 'profile', label: t.profile, icon: 'person-circle-outline' },
     { name: 'HelpScreen', label: t.help, icon: 'help-circle-outline' },
-    { name: 'AppPreferencesScreen', label: t.preferences, icon: 'options-outline' },
-    { name: 'mindful', label: t.mindful, icon: 'medkit-outline' },
-    { name: 'SettingsScreen', label: t.settings, icon: 'settings-outline' },
+    
+    
+    
     { name: 'insights', label: t.insights, icon: 'bar-chart-outline' },
-    { name: 'LoginScreen', label: t.login, icon: 'log-in-outline' },
+    { name: 'progress', label: 'Progress', icon: 'stats-chart-outline' },
+
+   
     { name: 'NotificationsScreen', label: t.notifications, icon: 'notifications-outline' },
+    { name: 'AppPreferencesScreen', label: t.preferences, icon: 'options-outline' },
+    { name: 'SettingsScreen', label: t.settings, icon: 'settings-outline' },
+    // { name: 'LogoutScreen', label: 'Logout', icon: 'log-out-outline' },
+
   ];
 
   return (
