@@ -1,21 +1,21 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Dimensions,
   ActivityIndicator,
   Alert,
+  Dimensions,
   Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from './ThemeContext';
+import { getMindfulnessActivities, MindfulnessActivity, trackMindfulnessActivity } from '../services/mindfulnessService';
 import { useLanguage } from './LanguageContext';
-import { getMindfulnessActivities, trackMindfulnessActivity, MindfulnessActivity } from '../services/mindfulnessService';
-import { useRouter } from 'expo-router';
+import { useTheme } from './ThemeContext';
 const { width } = Dimensions.get('window');
 
 export default function MindfulScreen() {

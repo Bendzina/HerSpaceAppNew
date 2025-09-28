@@ -1,13 +1,12 @@
-import { useLanguage } from '@/app/LanguageContext';
-import { useTheme } from '@/app/ThemeContext';
-import { JournalEntry, listEntries } from '@/services/journalService';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Dimensions, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
-const { width } = Dimensions.get('window');
+import { useLanguage } from '@/app/LanguageContext';
+import { useTheme } from '@/app/ThemeContext';
+import { JournalEntry, listEntries } from '@/services/journalService';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function JournalScreen() {
   const router = useRouter();
@@ -24,6 +23,10 @@ export default function JournalScreen() {
         noEntries: 'შენი პირველი ისტორია აქ იქნება...',
         noEntriesSubtext: 'დაიწყე შენი მოგზაურობა',
         untitled: 'უსათაურო',
+        manifestation: 'მანიფესტაცია',
+        manifestationInstructions: 'დაწერე რა გინდა მოხდეს შენს ცხოვრებაში. იყავი დეტალური და დადებითი. რა ემოციებს გრძნობ? რა ხედავ?',
+        asceticism: 'ასკეტიზმი',
+        asceticismInstructions: 'აღწერე შენი დღევანდელი თავშეკავება ან დისციპლინა. რა გააკეთე სიმარტივისთვის? რა ისწავლე?',
       }
     : {
         myJournal: 'My Journal',
@@ -31,6 +34,10 @@ export default function JournalScreen() {
         noEntries: 'Your first story will be here...',
         noEntriesSubtext: 'Start your journey',
         untitled: 'Untitled',
+        manifestation: 'Manifestation',
+        manifestationInstructions: 'Write about what you want to manifest in your life. Be specific and positive. What emotions do you feel? What do you see?',
+        asceticism: 'Asceticism',
+        asceticismInstructions: 'Describe your daily discipline or self-restraint. What did you do for simplicity? What did you learn?',
       };
 
   const load = async () => {
@@ -93,6 +100,53 @@ export default function JournalScreen() {
 
       {/* Content Area */}
       <View style={styles.contentContainer}>
+        {/* Special Journal Sections */}
+        <View style={styles.specialSections}>
+          <TouchableOpacity
+            style={[styles.specialCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={() => router.push({ pathname: '/(tabs)/journal/new-entry', params: { type: 'manifestation' } } as any)}
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={['#667EEA', '#764BA2']}
+              style={styles.specialIcon}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Text style={styles.specialIconText}>🌟</Text>
+            </LinearGradient>
+            <View style={styles.specialContent}>
+              <Text style={[styles.specialTitle, { color: colors.text }]}>{t.manifestation}</Text>
+              <Text style={[styles.specialInstructions, { color: colors.textSecondary }]} numberOfLines={3}>
+                {t.manifestationInstructions}
+              </Text>
+            </View>
+            <Ionicons name="arrow-forward" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.specialCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={() => router.push({ pathname: '/(tabs)/journal/new-entry', params: { type: 'asceticism' } } as any)}
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={['#48BB78', '#38A169']}
+              style={styles.specialIcon}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Text style={styles.specialIconText}>🧘‍♀️</Text>
+            </LinearGradient>
+            <View style={styles.specialContent}>
+              <Text style={[styles.specialTitle, { color: colors.text }]}>{t.asceticism}</Text>
+              <Text style={[styles.specialInstructions, { color: colors.textSecondary }]} numberOfLines={3}>
+                {t.asceticismInstructions}
+              </Text>
+            </View>
+            <Ionicons name="arrow-forward" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#FF6B9D" />
@@ -332,6 +386,46 @@ const styles = StyleSheet.create({
   },
   moodEmoji: {
     fontSize: 16,
+  },
+  specialSections: {
+    paddingHorizontal: 24,
+    marginBottom: 24,
+    gap: 16,
+  },
+  specialCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    borderRadius: 20,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  specialIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  specialIconText: {
+    fontSize: 24,
+  },
+  specialContent: {
+    flex: 1,
+  },
+  specialTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  specialInstructions: {
+    fontSize: 14,
+    lineHeight: 20,
   },
   readMore: {
     fontSize: 14,
