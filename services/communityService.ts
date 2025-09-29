@@ -114,12 +114,22 @@ export async function listCommunityReactions(postId: number | string): Promise<C
   return [];
 }
 
-export async function addCommunityReaction(postId: number | string, reaction_type: ReactionType, is_anonymous: boolean = true) {
+export async function removeCommunityReaction(postId: number | string, reaction_type: ReactionType) {
+  const resp = await authorizedFetch(`/community/posts/${postId}/reactions/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reaction_type, is_remove: true }),
+  });
+  if (!resp.ok) throw new Error(`Failed to remove reaction (${resp.status})`);
+  return resp.json();
+}
+
+export async function addCommunityReaction(postId: number | string, reaction_type: ReactionType, is_anonymous?: boolean) {
   const resp = await authorizedFetch(`/community/posts/${postId}/reactions/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ reaction_type, is_anonymous }),
   });
-  if (!resp.ok) throw new Error(`Failed to react (${resp.status})`);
+  if (!resp.ok) throw new Error(`Failed to add reaction (${resp.status})`);
   return resp.json();
 }

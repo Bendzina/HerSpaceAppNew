@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/app/ThemeContext';
 import { useLanguage } from '@/app/LanguageContext';
 import { translations } from '@/i18n/translations';
-import { getCommunityPost, listCommunityComments, addCommunityComment, listCommunityReactions, addCommunityReaction, type CommunityComment, type ReactionType } from '@/services/communityService';
+import { getCommunityPost, listCommunityComments, addCommunityComment, listCommunityReactions, addCommunityReaction, removeCommunityReaction, type CommunityComment, type ReactionType, type CommunityReaction } from '@/services/communityService';
 
 // Placeholder avatar for anonymous users
 const ANONYMOUS_AVATAR = 'https://ui-avatars.com/api/?name=Anonymous&background=random';
@@ -65,12 +65,14 @@ const ReactionButton = ({
   type, 
   count, 
   onPress, 
+  onCountPress,
   isActive = false,
   colors 
 }: { 
   type: ReactionType; 
   count: number; 
   onPress: () => void; 
+  onCountPress?: () => void;
   isActive?: boolean;
   colors: any;
 }) => (
@@ -90,14 +92,16 @@ const ReactionButton = ({
       color={isActive ? colors.primary : colors.textSecondary} 
     />
     {count > 0 && (
-      <Text 
-        style={[
-          styles.reactionCount, 
-          { color: isActive ? colors.primary : colors.textSecondary }
-        ]}
-      >
-        {count}
-      </Text>
+      <TouchableOpacity onPress={onCountPress} style={styles.reactionCountContainer}>
+        <Text 
+          style={[
+            styles.reactionCount, 
+            { color: isActive ? colors.primary : colors.textSecondary }
+          ]}
+        >
+          {count}
+        </Text>
+      </TouchableOpacity>
     )}
   </TouchableOpacity>
 );
@@ -125,10 +129,14 @@ export default function CommunityDetailScreen() {
 
   const [loading, setLoading] = React.useState(true);
   const [post, setPost] = React.useState<any | null>(null);
-  const [comments, setComments] = React.useState<CommunityComment[]>([]);
+  const [userReactions, setUserReactions] = React.useState<ReactionType[]>([]);
   const [reactions, setReactions] = React.useState<Record<ReactionType, number>>({ heart: 0, support: 0, prayer: 0, celebration: 0, hug: 0 });
+  const [reactionsWithUsers, setReactionsWithUsers] = React.useState<Record<ReactionType, CommunityReaction[]>>({} as Record<ReactionType, CommunityReaction[]>);
+  const [comments, setComments] = React.useState<CommunityComment[]>([]);
   const [commentText, setCommentText] = React.useState('');
   const [anonymous, setAnonymous] = React.useState(true);
+  const [reactionsModalVisible, setReactionsModalVisible] = React.useState(false);
+  const [selectedReactionType, setSelectedReactionType] = React.useState<ReactionType | null>(null);
   const [sending, setSending] = React.useState(false);
 
   const loadAll = React.useCallback(async () => {
@@ -140,9 +148,15 @@ export default function CommunityDetailScreen() {
     ]);
     setPost(p);
     setComments(cs || []);
+    setUserReactions((p.user_reactions || []) as ReactionType[]);
     const counts: Record<ReactionType, number> = { heart: 0, support: 0, prayer: 0, celebration: 0, hug: 0 };
-    (rs || []).forEach(r => { counts[r.reaction_type] = (counts[r.reaction_type] || 0) + 1; });
+    const users: Record<ReactionType, CommunityReaction[]> = { heart: [], support: [], prayer: [], celebration: [], hug: [] };
+    (rs || []).forEach(r => {
+      counts[r.reaction_type] = (counts[r.reaction_type] || 0) + 1;
+      users[r.reaction_type].push(r);
+    });
     setReactions(counts);
+    setReactionsWithUsers(users);
   }, [id]);
 
   React.useEffect(() => {
@@ -156,15 +170,33 @@ export default function CommunityDetailScreen() {
         setLoading(false);
       }
     })();
-  }, [loadAll]);
+  }, [loadAll, L.failedLoad]);
 
   const onReact = async (kind: ReactionType) => {
     try {
-      await addCommunityReaction(id!, kind, true);
-      setReactions(prev => ({ ...prev, [kind]: (prev[kind] || 0) + 1 }));
+      const hasReacted = userReactions.includes(kind);
+      if (hasReacted) {
+        await removeCommunityReaction(id!, kind);
+        setUserReactions(prev => prev.filter(r => r !== kind));
+        setReactions(prev => ({ ...prev, [kind]: Math.max((prev[kind] || 0) - 1, 0) }));
+      } else {
+        await addCommunityReaction(id!, kind, true);
+        setUserReactions(prev => [...prev, kind]);
+        setReactions(prev => ({ ...prev, [kind]: (prev[kind] || 0) + 1 }));
+      }
     } catch (e: any) {
       Alert.alert('', e?.message || L.failedLoad);
     }
+  };
+
+  const showWhoReacted = (reactionType: ReactionType) => {
+    setSelectedReactionType(reactionType);
+    setReactionsModalVisible(true);
+  };
+
+  const hideReactionsModal = () => {
+    setReactionsModalVisible(false);
+    setSelectedReactionType(null);
   };
 
   const onSend = async () => {
@@ -240,8 +272,9 @@ export default function CommunityDetailScreen() {
                   type={r}
                   count={reactions[r] || 0}
                   onPress={() => onReact(r)}
+                  onCountPress={() => showWhoReacted(r)}
                   colors={colors}
-                  isActive={post.user_reactions?.includes(r)}
+                  isActive={userReactions.includes(r)}
                 />
               ))}
             </View>
@@ -290,68 +323,113 @@ export default function CommunityDetailScreen() {
               </View>
             )}
           </View>
-
-          {/* Add Comment */}
-          <View style={[styles.addCommentContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <View style={styles.commentInputContainer}>
-              <TextInput
-                placeholder={L.addCommentPh}
-                placeholderTextColor={colors.textSecondary}
-                value={commentText}
-                onChangeText={setCommentText}
-                style={[styles.commentInput, { color: colors.text }]}
-                multiline
-                maxLength={500}
-                textAlignVertical="top"
-              />
-              <View style={styles.commentActions}>
-                <TouchableOpacity 
-                  onPress={() => setAnonymous(!anonymous)}
-                  style={[styles.anonymousToggle, { 
-                    backgroundColor: anonymous ? `${colors.primary}22` : colors.background,
-                    borderColor: anonymous ? colors.primary : colors.border
-                  }]}
-                >
-                  <Ionicons 
-                    name={anonymous ? 'eye-off-outline' : 'eye-outline'} 
-                    size={16} 
-                    color={anonymous ? colors.primary : colors.textSecondary} 
-                  />
-                  <Text style={[
-                    styles.anonymousText, 
-                    { 
-                      color: anonymous ? colors.primary : colors.textSecondary,
-                      marginLeft: 4
-                    }
-                  ]}>
-                    {L.anonymous}
-                  </Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  onPress={onSend} 
-                  disabled={sending || !commentText.trim()}
-                  style={[
-                    styles.sendButton, 
-                    { 
-                      backgroundColor: colors.primary,
-                      opacity: (sending || !commentText.trim()) ? 0.5 : 1
-                    }
-                  ]}
-                >
-                  {sending ? (
-                    <ActivityIndicator color="#fff" size="small" />
-                  ) : (
-                    <Ionicons name="send" size={18} color="#fff" />
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
         </ScrollView>
       ) : (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: colors.textSecondary }}>—</Text>
+        </View>
+      )}
+
+      {/* Add Comment */}
+      <View style={[styles.addCommentContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={styles.commentInputContainer}>
+          <TextInput
+            placeholder={L.addCommentPh}
+            placeholderTextColor={colors.textSecondary}
+            value={commentText}
+            onChangeText={setCommentText}
+            style={[styles.commentInput, { color: colors.text }]}
+            multiline
+            maxLength={500}
+            textAlignVertical="top"
+          />
+          <View style={styles.commentActions}>
+            <TouchableOpacity 
+              onPress={() => setAnonymous(!anonymous)}
+              style={[styles.anonymousToggle, { 
+                backgroundColor: anonymous ? `${colors.primary}22` : colors.background,
+                borderColor: anonymous ? colors.primary : colors.border
+              }]}
+            >
+              <Ionicons 
+                name={anonymous ? 'eye-off-outline' : 'eye-outline'} 
+                size={16} 
+                color={anonymous ? colors.primary : colors.textSecondary} 
+              />
+              <Text style={[
+                styles.anonymousText, 
+                { 
+                  color: anonymous ? colors.primary : colors.textSecondary,
+                  marginLeft: 4
+                }
+              ]}>
+                {L.anonymous}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              onPress={onSend} 
+              disabled={sending || !commentText.trim()}
+              style={[
+                styles.sendButton,
+                {
+                  backgroundColor: colors.primary,
+                  opacity: (sending || !commentText.trim()) ? 0.5 : 1
+                }
+              ]}
+            >
+              {sending ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Ionicons name="send" size={18} color="#fff" />
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+
+      {reactionsModalVisible && selectedReactionType && (
+        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.background, borderColor: colors.border }]}>
+            <View style={styles.modalHeader}>
+              <Ionicons name={reactionIcon[selectedReactionType]} size={24} color={colors.primary} />
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
+                {reactionsWithUsers[selectedReactionType]?.length || 0} {selectedReactionType}(s)
+              </Text>
+              <TouchableOpacity onPress={hideReactionsModal} style={styles.modalClose}>
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+              {reactionsWithUsers[selectedReactionType]?.length > 0 ? (
+                reactionsWithUsers[selectedReactionType].map((reaction) => (
+                  <View key={reaction.id} style={[styles.reactionUserItem, { borderBottomColor: colors.border }]}>
+                    <Avatar
+                      name={undefined}
+                      isAnonymous={reaction.is_anonymous !== false}
+                      size={36}
+                    />
+                    <View style={styles.reactionUserInfo}>
+                      <Text style={[styles.reactionUserName, { color: colors.text }]}>
+                        {reaction.is_anonymous !== false ? L.anonymous : 'User'}
+                      </Text>
+                      <Text style={[styles.reactionTime, { color: colors.textSecondary }]}>
+                        {formatTimeAgo(reaction.created_at)}
+                      </Text>
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <View style={styles.noReactions}>
+                  <Ionicons name="heart-outline" size={32} color={colors.textSecondary} style={{ opacity: 0.5 }} />
+                  <Text style={[styles.noReactionsText, { color: colors.textSecondary }]}>
+                    No {selectedReactionType} reactions yet
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
         </View>
       )}
     </View>
@@ -450,6 +528,11 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     fontSize: 13,
     fontWeight: '600',
+  },
+  reactionCountContainer: {
+    marginLeft: 6,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
   },
   
   // Comments Section
@@ -574,5 +657,72 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+
+  // Modal Styles
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  modalContent: {
+    width: '90%',
+    maxHeight: '70%',
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 0,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    flex: 1,
+    marginLeft: 12,
+  },
+  modalClose: {
+    padding: 4,
+  },
+  modalList: {
+    maxHeight: 300,
+  },
+  reactionUserItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  reactionUserInfo: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  reactionUserName: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  reactionTime: {
+    fontSize: 12,
+    marginTop: 2,
+    opacity: 0.7,
+  },
+  noReactions: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 32,
+  },
+  noReactionsText: {
+    marginTop: 8,
+    fontSize: 14,
+    opacity: 0.7,
   },
 });
