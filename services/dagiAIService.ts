@@ -60,7 +60,13 @@ class DagiAIService {
    */
   async sendMessage(prompt: string): Promise<DagiAIResponse> {
     try {
-      const response = await authorizedFetch(`${this.baseUrl}/dagi-ai/`, {
+      const url = `${this.baseUrl}/dagi-ai/`;
+      
+      console.log('🔵 === DAGI AI REQUEST ===');
+      console.log('🔵 URL:', url);
+      console.log('🔵 Prompt:', prompt);
+      
+      const response = await authorizedFetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -68,15 +74,24 @@ class DagiAIService {
         body: JSON.stringify({ prompt }),
       });
 
+      console.log('🔵 Response Status:', response.status);
+      console.log('🔵 Response OK:', response.ok);
+
       if (!response.ok) {
         const errorData = await response.text();
-        throw new Error(`AI request failed: ${errorData || response.statusText}`);
+        console.error('❌ Error Response:', errorData);
+        throw new Error(`AI request failed (${response.status}): ${errorData || response.statusText}`);
       }
 
       const data = await response.json();
+      console.log('✅ Success Response:', JSON.stringify(data, null, 2));
+      console.log('🔵 === END REQUEST ===\n');
+      
       return data;
     } catch (error) {
-      console.error('Dagi AI Service Error:', error);
+      console.error('❌ === DAGI AI ERROR ===');
+      console.error('❌ Error:', error);
+      console.error('❌ === END ERROR ===\n');
       throw error;
     }
   }
@@ -124,128 +139,12 @@ class DagiAIService {
   }
 
   /**
-   * Get a specific tarot reading
-   */
-  async getTarotReading(id: number): Promise<TarotReading> {
-    try {
-      const response = await authorizedFetch(`${this.baseUrl}/tarot/readings/${id}/`, {
-        method: 'GET',
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch tarot reading: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Error fetching tarot reading:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get user's AI conversation history
-   */
-  async getAIConversations(): Promise<AIConversation[]> {
-    try {
-      const response = await authorizedFetch(`${this.baseUrl}/ai/conversations/`, {
-        method: 'GET',
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch AI conversations: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Error fetching AI conversations:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get a specific AI conversation
-   */
-  async getAIConversation(id: number): Promise<AIConversation> {
-    try {
-      const response = await authorizedFetch(`${this.baseUrl}/ai/conversations/${id}/`, {
-        method: 'GET',
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch AI conversation: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Error fetching AI conversation:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Create a new AI conversation
-   */
-  async createAIConversation(
-    conversationType: 'tarot' | 'general' | 'guidance' | 'reflection',
-    userMessage: string,
-    contextData?: Record<string, any>
-  ): Promise<AIConversation> {
-    try {
-      const response = await authorizedFetch(`${this.baseUrl}/ai/conversations/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          conversation_type: conversationType,
-          user_message: userMessage,
-          context_data: contextData || {},
-          is_favorite: false,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to create AI conversation: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Error creating AI conversation:', error);
-      throw error;
-    }
-  }
-
-  /**
    * Helper method to detect if a prompt is tarot-related
    */
   isTarotPrompt(prompt: string): boolean {
     const tarotKeywords = ['tarot', 'card', 'reading', 'tarot reading', 'draw cards', 'tarot cards'];
     const lowerPrompt = prompt.toLowerCase();
     return tarotKeywords.some(keyword => lowerPrompt.includes(keyword));
-  }
-
-  /**
-   * Helper method to extract reading type from prompt
-   */
-  getReadingType(prompt: string): 'single_card' | 'three_card' | 'celtic_cross' | 'daily' | 'custom' {
-    const lowerPrompt = prompt.toLowerCase();
-
-    if (lowerPrompt.includes('single') || lowerPrompt.includes('one card')) {
-      return 'single_card';
-    } else if (lowerPrompt.includes('three') || lowerPrompt.includes('past present future')) {
-      return 'three_card';
-    } else if (lowerPrompt.includes('celtic') || lowerPrompt.includes('cross')) {
-      return 'celtic_cross';
-    } else if (lowerPrompt.includes('daily')) {
-      return 'daily';
-    } else {
-      return 'custom';
-    }
   }
 }
 
