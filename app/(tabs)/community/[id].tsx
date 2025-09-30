@@ -1,17 +1,36 @@
 import React from 'react';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, TextInput, Alert, Image } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  ActivityIndicator,
+  TouchableOpacity,
+  TextInput,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/app/ThemeContext';
 import { useLanguage } from '@/app/LanguageContext';
 import { translations } from '@/i18n/translations';
-import { getCommunityPost, listCommunityComments, addCommunityComment, listCommunityReactions, addCommunityReaction, removeCommunityReaction, type CommunityComment, type ReactionType, type CommunityReaction } from '@/services/communityService';
+import {
+  getCommunityPost,
+  listCommunityComments,
+  addCommunityComment,
+  listCommunityReactions,
+  toggleCommunityReaction,
+  type CommunityComment,
+  type ReactionType,
+  type CommunityReaction
+} from '@/services/communityService';
 
-// Placeholder avatar for anonymous users
 const ANONYMOUS_AVATAR = 'https://ui-avatars.com/api/?name=Anonymous&background=random';
 
-// Format date to relative time (e.g., "2h ago")
 const formatTimeAgo = (dateString: string) => {
   const date = new Date(dateString);
   const now = new Date();
@@ -29,7 +48,7 @@ const formatTimeAgo = (dateString: string) => {
   for (const [unit, secondsInUnit] of Object.entries(intervals)) {
     const interval = Math.floor(seconds / secondsInUnit);
     if (interval >= 1) {
-      return `${interval}${unit[0]} ago`; // e.g., "2d ago"
+      return `${interval}${unit[0]} ago`;
     }
   }
   return 'Just now';
@@ -37,14 +56,13 @@ const formatTimeAgo = (dateString: string) => {
 
 const reactionOrder: ReactionType[] = ['heart', 'support', 'prayer', 'celebration', 'hug'];
 const reactionIcon: Record<ReactionType, keyof typeof Ionicons.glyphMap> = {
-  heart: 'heart-outline',
-  support: 'thumbs-up-outline',
-  prayer: 'happy-outline', // Using happy-outline as an alternative to hands-pray-outline
-  celebration: 'sparkles-outline',
-  hug: 'heart-circle-outline',
+  heart: 'heart',
+  support: 'thumbs-up',
+  prayer: 'happy',
+  celebration: 'sparkles',
+  hug: 'heart-circle',
 };
 
-// Avatar component for users
 const Avatar = ({ name, isAnonymous, size = 32 }: { name?: string; isAnonymous: boolean; size?: number }) => (
   <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}>
     {isAnonymous ? (
@@ -60,7 +78,6 @@ const Avatar = ({ name, isAnonymous, size = 32 }: { name?: string; isAnonymous: 
   </View>
 );
 
-// Reaction button component
 const ReactionButton = ({ 
   type, 
   count, 
@@ -114,7 +131,6 @@ export default function CommunityDetailScreen() {
   const { language } = useLanguage();
   const t = translations[language] || translations.en;
   
-  // Localized strings for this screen
   const L = {
     back: t.back,
     comments: t.comments,
@@ -129,7 +145,7 @@ export default function CommunityDetailScreen() {
 
   const [loading, setLoading] = React.useState(true);
   const [post, setPost] = React.useState<any | null>(null);
-  const [userReactions, setUserReactions] = React.useState<ReactionType[]>([]);
+  const [userReaction, setUserReaction] = React.useState<ReactionType | null>(null); // Changed: only one reaction
   const [reactions, setReactions] = React.useState<Record<ReactionType, number>>({ heart: 0, support: 0, prayer: 0, celebration: 0, hug: 0 });
   const [reactionsWithUsers, setReactionsWithUsers] = React.useState<Record<ReactionType, CommunityReaction[]>>({} as Record<ReactionType, CommunityReaction[]>);
   const [comments, setComments] = React.useState<CommunityComment[]>([]);
@@ -148,7 +164,11 @@ export default function CommunityDetailScreen() {
     ]);
     setPost(p);
     setComments(cs || []);
-    setUserReactions((p.user_reactions || []) as ReactionType[]);
+    
+    // Changed: user can only have one reaction
+    const userReactions = (p.user_reactions || []) as ReactionType[];
+    setUserReaction(userReactions.length > 0 ? userReactions[0] : null);
+    
     const counts: Record<ReactionType, number> = { heart: 0, support: 0, prayer: 0, celebration: 0, hug: 0 };
     const users: Record<ReactionType, CommunityReaction[]> = { heart: [], support: [], prayer: [], celebration: [], hug: [] };
     (rs || []).forEach(r => {
@@ -174,18 +194,36 @@ export default function CommunityDetailScreen() {
 
   const onReact = async (kind: ReactionType) => {
     try {
-      const hasReacted = userReactions.includes(kind);
-      if (hasReacted) {
-        await removeCommunityReaction(id!, kind);
-        setUserReactions(prev => prev.filter(r => r !== kind));
+      const prevReaction = userReaction;
+      
+      // Optimistic update
+      if (prevReaction === kind) {
+        // Remove reaction
+        setUserReaction(null);
         setReactions(prev => ({ ...prev, [kind]: Math.max((prev[kind] || 0) - 1, 0) }));
+      } else if (prevReaction) {
+        // Change reaction
+        setUserReaction(kind);
+        setReactions(prev => ({
+          ...prev,
+          [prevReaction]: Math.max((prev[prevReaction] || 0) - 1, 0),
+          [kind]: (prev[kind] || 0) + 1
+        }));
       } else {
-        await addCommunityReaction(id!, kind, true);
-        setUserReactions(prev => [...prev, kind]);
+        // Add new reaction
+        setUserReaction(kind);
         setReactions(prev => ({ ...prev, [kind]: (prev[kind] || 0) + 1 }));
       }
+
+      // Call backend
+      await toggleCommunityReaction(id!, kind, true);
+      
+      // Reload to sync with server
+      await loadAll();
     } catch (e: any) {
       Alert.alert('', e?.message || L.failedLoad);
+      // Reload on error to fix state
+      await loadAll();
     }
   };
 
@@ -214,230 +252,230 @@ export default function CommunityDetailScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Stack.Screen options={{ headerShown: false }} />
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+    >
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <Stack.Screen options={{ headerShown: false }} />
 
-      <View style={[styles.header, { backgroundColor: colors.background, paddingTop: insets.top + 6 }]}> 
-        <TouchableOpacity 
-          onPress={() => router.back()} 
-          accessibilityLabel={L.back} 
-          style={styles.backButton}
-        >
-          <Ionicons name="chevron-back" size={24} color={colors.text} />
-          <Text style={[styles.headerTitle, { color: colors.text }]}>{L.back}</Text>
-        </TouchableOpacity>
-      </View>
-
-      {loading ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator />
+        <View style={[styles.header, { backgroundColor: colors.background, paddingTop: insets.top + 6 }]}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            accessibilityLabel={L.back}
+            style={styles.backButton}
+          >
+            <Ionicons name="chevron-back" size={24} color={colors.text} />
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{L.back}</Text>
+          </TouchableOpacity>
         </View>
-      ) : post ? (
-        <ScrollView 
-          contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Post Header */}
-          <View style={[styles.postHeader, { borderBottomColor: colors.border }]}>
-            <View style={styles.postHeaderContent}>
-              <Avatar name={post.user?.name} isAnonymous={post.is_anonymous} size={40} />
-              <View style={styles.postHeaderText}>
-                <Text style={[styles.postAuthor, { color: colors.text }]}>
-                  {post.is_anonymous ? L.anonymous : (post.user?.name || L.anonymousUser)}
-                </Text>
-                <Text style={[styles.postTime, { color: colors.textSecondary }]}>
-                  {formatTimeAgo(post.created_at)}
-                </Text>
+
+        {loading ? (
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            <ActivityIndicator />
+          </View>
+        ) : post ? (
+          <ScrollView
+            contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={[styles.postHeader, { borderBottomColor: colors.border }]}>
+              <View style={styles.postHeaderContent}>
+                <Avatar name={post.user?.name} isAnonymous={post.is_anonymous} size={40} />
+                <View style={styles.postHeaderText}>
+                  <Text style={[styles.postAuthor, { color: colors.text }]}>
+                    {post.is_anonymous ? L.anonymous : (post.user?.name || L.anonymousUser)}
+                  </Text>
+                  <Text style={[styles.postTime, { color: colors.textSecondary }]}>
+                    {formatTimeAgo(post.created_at)}
+                  </Text>
+                </View>
+              </View>
+              <Text style={[styles.postType, { backgroundColor: `${colors.primary}22`, color: colors.primary }]}>
+                {post.post_type}
+              </Text>
+            </View>
+
+            <View style={styles.postContent}>
+              <Text style={[styles.postTitle, { color: colors.text }]}>{post.title}</Text>
+              {!!post.content && (
+                <Text style={[styles.postText, { color: colors.textSecondary }]}>{post.content}</Text>
+              )}
+            </View>
+
+            <View style={[styles.reactionsContainer, { borderTopColor: colors.border, borderBottomColor: colors.border }]}>
+              <View style={styles.reactionsRow}>
+                {reactionOrder.map(r => (
+                  <ReactionButton
+                    key={r}
+                    type={r}
+                    count={reactions[r] || 0}
+                    onPress={() => onReact(r)}
+                    onCountPress={() => showWhoReacted(r)}
+                    colors={colors}
+                    isActive={userReaction === r}
+                  />
+                ))}
               </View>
             </View>
-            <Text style={[styles.postType, { backgroundColor: `${colors.primary}22`, color: colors.primary }]}>
-              {post.post_type}
-            </Text>
-          </View>
 
-          {/* Post Content */}
-          <View style={styles.postContent}>
-            <Text style={[styles.postTitle, { color: colors.text }]}>{post.title}</Text>
-            {!!post.content && (
-              <Text style={[styles.postText, { color: colors.textSecondary }]}>{post.content}</Text>
-            )}
-          </View>
+            <View style={styles.commentsSection}>
+              <View style={styles.commentsHeader}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>{L.comments}</Text>
+                <Text style={[styles.commentsCount, { color: colors.textSecondary }]}>{comments.length}</Text>
+              </View>
 
-          {/* Reactions */}
-          <View style={[styles.reactionsContainer, { borderTopColor: colors.border, borderBottomColor: colors.border }]}>
-            <View style={styles.reactionsRow}>
-              {reactionOrder.map(r => (
-                <ReactionButton
-                  key={r}
-                  type={r}
-                  count={reactions[r] || 0}
-                  onPress={() => onReact(r)}
-                  onCountPress={() => showWhoReacted(r)}
-                  colors={colors}
-                  isActive={userReactions.includes(r)}
+              {comments.length === 0 ? (
+                <View style={styles.noComments}>
+                  <Ionicons name="chatbubble-ellipses-outline" size={32} color={colors.textSecondary} style={{ opacity: 0.5 }} />
+                  <Text style={[styles.noCommentsText, { color: colors.textSecondary }]}>{L.noComments}</Text>
+                </View>
+              ) : (
+                <View style={styles.commentsList}>
+                  {comments.map((c) => (
+                    <View
+                      key={c.id}
+                      style={[
+                        styles.comment,
+                        {
+                          backgroundColor: colors.surface,
+                          borderColor: colors.border,
+                          shadowColor: colors.shadow
+                        }
+                      ]}
+                    >
+                      <View style={styles.commentHeader}>
+                        <Avatar name={c.user?.name} isAnonymous={c.is_anonymous} size={32} />
+                        <View style={styles.commentInfo}>
+                          <Text style={[styles.commentAuthor, { color: colors.text }]}>
+                            {c.is_anonymous ? L.anonymous : (c.user?.name || L.anonymousUser)}
+                          </Text>
+                          <Text style={[styles.commentTime, { color: colors.textSecondary }]}>
+                            {formatTimeAgo(c.created_at)}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={[styles.commentText, { color: colors.text }]}>{c.content}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+
+            <View style={[styles.addCommentContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={styles.commentInputContainer}>
+                <TextInput
+                  placeholder={L.addCommentPh}
+                  placeholderTextColor={colors.textSecondary}
+                  value={commentText}
+                  onChangeText={setCommentText}
+                  style={[styles.commentInput, { color: colors.text }]}
+                  multiline
+                  maxLength={500}
+                  textAlignVertical="top"
                 />
-              ))}
-            </View>
-          </View>
+                <View style={styles.commentActions}>
+                  <TouchableOpacity
+                    onPress={() => setAnonymous(!anonymous)}
+                    style={[styles.anonymousToggle, {
+                      backgroundColor: anonymous ? `${colors.primary}22` : colors.background,
+                      borderColor: anonymous ? colors.primary : colors.border
+                    }]}
+                  >
+                    <Ionicons
+                      name={anonymous ? 'eye-off-outline' : 'eye-outline'}
+                      size={16}
+                      color={anonymous ? colors.primary : colors.textSecondary}
+                    />
+                    <Text style={[
+                      styles.anonymousText,
+                      {
+                        color: anonymous ? colors.primary : colors.textSecondary,
+                        marginLeft: 4
+                      }
+                    ]}>
+                      {L.anonymous}
+                    </Text>
+                  </TouchableOpacity>
 
-          {/* Comments Section */}
-          <View style={styles.commentsSection}>
-            <View style={styles.commentsHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>{L.comments}</Text>
-              <Text style={[styles.commentsCount, { color: colors.textSecondary }]}>{comments.length}</Text>
-            </View>
-            
-            {comments.length === 0 ? (
-              <View style={styles.noComments}>
-                <Ionicons name="chatbubble-ellipses-outline" size={32} color={colors.textSecondary} style={{ opacity: 0.5 }} />
-                <Text style={[styles.noCommentsText, { color: colors.textSecondary }]}>{L.noComments}</Text>
-              </View>
-            ) : (
-              <View style={styles.commentsList}>
-                {comments.map((c) => (
-                  <View 
-                    key={c.id} 
+                  <TouchableOpacity
+                    onPress={onSend}
+                    disabled={sending || !commentText.trim()}
                     style={[
-                      styles.comment, 
-                      { 
-                        backgroundColor: colors.surface,
-                        borderColor: colors.border,
-                        shadowColor: colors.shadow
+                      styles.sendButton,
+                      {
+                        backgroundColor: colors.primary,
+                        opacity: (sending || !commentText.trim()) ? 0.5 : 1
                       }
                     ]}
                   >
-                    <View style={styles.commentHeader}>
-                      <Avatar name={c.user?.name} isAnonymous={c.is_anonymous} size={32} />
-                      <View style={styles.commentInfo}>
-                        <Text style={[styles.commentAuthor, { color: colors.text }]}>
-                          {c.is_anonymous ? L.anonymous : (c.user?.name || L.anonymousUser)}
+                    {sending ? (
+                      <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                      <Ionicons name="send" size={18} color="#fff" />
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </ScrollView>
+        ) : (
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: colors.textSecondary }}>—</Text>
+          </View>
+        )}
+
+        {reactionsModalVisible && selectedReactionType && (
+          <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+            <View style={[styles.modalContent, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <View style={styles.modalHeader}>
+                <Ionicons name={reactionIcon[selectedReactionType]} size={24} color={colors.primary} />
+                <Text style={[styles.modalTitle, { color: colors.text }]}>
+                  {reactionsWithUsers[selectedReactionType]?.length || 0} {selectedReactionType}(s)
+                </Text>
+                <TouchableOpacity onPress={hideReactionsModal} style={styles.modalClose}>
+                  <Ionicons name="close" size={24} color={colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+                {reactionsWithUsers[selectedReactionType]?.length > 0 ? (
+                  reactionsWithUsers[selectedReactionType].map((reaction) => (
+                    <View key={reaction.id} style={[styles.reactionUserItem, { borderBottomColor: colors.border }]}>
+                      <Avatar
+                        name={reaction.user?.name}
+                        isAnonymous={reaction.is_anonymous === true}
+                        size={36}
+                      />
+                      <View style={styles.reactionUserInfo}>
+                        <Text style={[styles.reactionUserName, { color: colors.text }]}>
+                          {reaction.is_anonymous === true ? L.anonymous : (reaction.user?.name || 'User')}
                         </Text>
-                        <Text style={[styles.commentTime, { color: colors.textSecondary }]}>
-                          {formatTimeAgo(c.created_at)}
+                        <Text style={[styles.reactionTime, { color: colors.textSecondary }]}>
+                          {formatTimeAgo(reaction.created_at)}
                         </Text>
                       </View>
                     </View>
-                    <Text style={[styles.commentText, { color: colors.text }]}>{c.content}</Text>
+                  ))
+                ) : (
+                  <View style={styles.noReactions}>
+                    <Ionicons name="heart-outline" size={32} color={colors.textSecondary} style={{ opacity: 0.5 }} />
+                    <Text style={[styles.noReactionsText, { color: colors.textSecondary }]}>
+                      No {selectedReactionType} reactions yet
+                    </Text>
                   </View>
-                ))}
-              </View>
-            )}
-          </View>
-        </ScrollView>
-      ) : (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: colors.textSecondary }}>—</Text>
-        </View>
-      )}
-
-      {/* Add Comment */}
-      <View style={[styles.addCommentContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <View style={styles.commentInputContainer}>
-          <TextInput
-            placeholder={L.addCommentPh}
-            placeholderTextColor={colors.textSecondary}
-            value={commentText}
-            onChangeText={setCommentText}
-            style={[styles.commentInput, { color: colors.text }]}
-            multiline
-            maxLength={500}
-            textAlignVertical="top"
-          />
-          <View style={styles.commentActions}>
-            <TouchableOpacity 
-              onPress={() => setAnonymous(!anonymous)}
-              style={[styles.anonymousToggle, { 
-                backgroundColor: anonymous ? `${colors.primary}22` : colors.background,
-                borderColor: anonymous ? colors.primary : colors.border
-              }]}
-            >
-              <Ionicons 
-                name={anonymous ? 'eye-off-outline' : 'eye-outline'} 
-                size={16} 
-                color={anonymous ? colors.primary : colors.textSecondary} 
-              />
-              <Text style={[
-                styles.anonymousText, 
-                { 
-                  color: anonymous ? colors.primary : colors.textSecondary,
-                  marginLeft: 4
-                }
-              ]}>
-                {L.anonymous}
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              onPress={onSend} 
-              disabled={sending || !commentText.trim()}
-              style={[
-                styles.sendButton,
-                {
-                  backgroundColor: colors.primary,
-                  opacity: (sending || !commentText.trim()) ? 0.5 : 1
-                }
-              ]}
-            >
-              {sending ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <Ionicons name="send" size={18} color="#fff" />
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-
-      {reactionsModalVisible && selectedReactionType && (
-        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
-          <View style={[styles.modalContent, { backgroundColor: colors.background, borderColor: colors.border }]}>
-            <View style={styles.modalHeader}>
-              <Ionicons name={reactionIcon[selectedReactionType]} size={24} color={colors.primary} />
-              <Text style={[styles.modalTitle, { color: colors.text }]}>
-                {reactionsWithUsers[selectedReactionType]?.length || 0} {selectedReactionType}(s)
-              </Text>
-              <TouchableOpacity onPress={hideReactionsModal} style={styles.modalClose}>
-                <Ionicons name="close" size={24} color={colors.textSecondary} />
-              </TouchableOpacity>
+                )}
+              </ScrollView>
             </View>
-
-            <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
-              {reactionsWithUsers[selectedReactionType]?.length > 0 ? (
-                reactionsWithUsers[selectedReactionType].map((reaction) => (
-                  <View key={reaction.id} style={[styles.reactionUserItem, { borderBottomColor: colors.border }]}>
-                    <Avatar
-                      name={undefined}
-                      isAnonymous={reaction.is_anonymous !== false}
-                      size={36}
-                    />
-                    <View style={styles.reactionUserInfo}>
-                      <Text style={[styles.reactionUserName, { color: colors.text }]}>
-                        {reaction.is_anonymous !== false ? L.anonymous : 'User'}
-                      </Text>
-                      <Text style={[styles.reactionTime, { color: colors.textSecondary }]}>
-                        {formatTimeAgo(reaction.created_at)}
-                      </Text>
-                    </View>
-                  </View>
-                ))
-              ) : (
-                <View style={styles.noReactions}>
-                  <Ionicons name="heart-outline" size={32} color={colors.textSecondary} style={{ opacity: 0.5 }} />
-                  <Text style={[styles.noReactionsText, { color: colors.textSecondary }]}>
-                    No {selectedReactionType} reactions yet
-                  </Text>
-                </View>
-              )}
-            </ScrollView>
           </View>
-        </View>
-      )}
-    </View>
+        )}
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  // Header
   header: {
     paddingHorizontal: 16,
     paddingTop: 14,
@@ -455,8 +493,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 8,
   },
-  
-  // Post Header
   postHeader: {
     padding: 16,
     borderBottomWidth: 1,
@@ -489,8 +525,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginLeft: 8,
   },
-  
-  // Post Content
   postContent: {
     padding: 16,
   },
@@ -504,8 +538,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
   },
-  
-  // Reactions
   reactionsContainer: {
     paddingVertical: 12,
     borderTopWidth: 1,
@@ -534,8 +566,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     paddingVertical: 2,
   },
-  
-  // Comments Section
   commentsSection: {
     padding: 16,
   },
@@ -597,8 +627,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 20,
   },
-  
-  // Add Comment
   addCommentContainer: {
     position: 'absolute',
     bottom: 0,
@@ -606,7 +634,7 @@ const styles = StyleSheet.create({
     right: 0,
     borderTopWidth: 1,
     padding: 12,
-    paddingBottom: 34,
+    paddingBottom: 100, // Increased padding to account for keyboard
   },
   commentInputContainer: {
     borderRadius: 12,
@@ -645,8 +673,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  
-  // Avatar
   avatar: {
     overflow: 'hidden',
     justifyContent: 'center',
@@ -658,8 +684,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
-  // Modal Styles
   modalOverlay: {
     position: 'absolute',
     top: 0,

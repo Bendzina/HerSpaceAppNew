@@ -12,12 +12,13 @@ export interface CommunityPost {
   updated_at?: string;
   comment_count?: number;
   reaction_count?: number;
-  user_reactions?: string[];
+  user_reactions?: string[]; // Array of reaction types the current user has reacted with
+  user?: { id: number; name: string };
 }
 
 export interface ListPostParams {
   search?: string;
-  ordering?: string; // -created_at, created_at
+  ordering?: string;
   post_type?: CommunityPostType;
 }
 
@@ -86,7 +87,7 @@ export async function listCommunityComments(postId: number | string): Promise<Co
   return [];
 }
 
-export async function addCommunityComment(postId: number | string, input: { content: string; is_anonymous?: boolean; }) {
+export async function addCommunityComment(postId: number | string, input: { content: string; is_anonymous?: boolean }) {
   const resp = await authorizedFetch(`/community/posts/${postId}/comments/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -103,6 +104,7 @@ export interface CommunityReaction {
   reaction_type: ReactionType;
   is_anonymous?: boolean;
   created_at: string;
+  user?: User;
 }
 
 export async function listCommunityReactions(postId: number | string): Promise<CommunityReaction[]> {
@@ -114,22 +116,22 @@ export async function listCommunityReactions(postId: number | string): Promise<C
   return [];
 }
 
-export async function removeCommunityReaction(postId: number | string, reaction_type: ReactionType) {
-  const resp = await authorizedFetch(`/community/posts/${postId}/reactions/`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ reaction_type, is_remove: true }),
-  });
-  if (!resp.ok) throw new Error(`Failed to remove reaction (${resp.status})`);
-  return resp.json();
-}
-
-export async function addCommunityReaction(postId: number | string, reaction_type: ReactionType, is_anonymous?: boolean) {
+/**
+ * Toggle or change reaction (Facebook-style)
+ * - If user has no reaction: adds it
+ * - If user has same reaction: removes it
+ * - If user has different reaction: changes to new one
+ */
+export async function toggleCommunityReaction(
+  postId: number | string,
+  reaction_type: ReactionType,
+  is_anonymous?: boolean
+) {
   const resp = await authorizedFetch(`/community/posts/${postId}/reactions/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ reaction_type, is_anonymous }),
   });
-  if (!resp.ok) throw new Error(`Failed to add reaction (${resp.status})`);
+  if (!resp.ok) throw new Error(`Failed to toggle reaction (${resp.status})`);
   return resp.json();
 }
