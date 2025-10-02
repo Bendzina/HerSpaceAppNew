@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { DrawerContentScrollView, DrawerItem } from '@react-navigation/drawer';
 import React from 'react';
 import { StyleSheet, Switch, Text, View } from 'react-native';
+import { router } from 'expo-router';
 
 export default function CustomDrawerContent(props: any) {
   const { isDark, setIsDark, colors } = useTheme();
@@ -21,7 +22,7 @@ export default function CustomDrawerContent(props: any) {
     { name: 'rituals', label: t.rituals, icon: 'leaf-outline' },
     
     { name: 'mindful', label: t.mindful, icon: 'medkit-outline' },
-    { name: 'community/index', label: 'Community', icon: 'people-outline' },
+    { name: '(tabs)/community', label: 'Community', icon: 'people-outline' },
     { name: 'profile', label: t.profile, icon: 'person-circle-outline' },
     { name: 'HelpScreen', label: t.help, icon: 'help-circle-outline' },
     
@@ -62,7 +63,13 @@ export default function CustomDrawerContent(props: any) {
               label={it.label}
               focused={focused}
               icon={({ color, size }) => <Ionicons name={it.icon} size={size} color={color} />}
-              onPress={() => props.navigation.navigate(it.name as never)}
+              onPress={() => {
+                if (it.name.startsWith('(tabs)/')) {
+                  router.push(`/${it.name}` as any);
+                } else {
+                  props.navigation.navigate(it.name as never);
+                }
+              }}
               labelStyle={{ color: focused ? colors.primary : colors.text }}
               inactiveTintColor={colors.text}
               activeTintColor={colors.primary}

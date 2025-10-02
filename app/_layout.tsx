@@ -120,20 +120,13 @@ function InnerDrawer() {
         name="(tabs)"
         options={{ title: 'Home', headerShown: false, drawerItemStyle: { display: 'none' } }}
       />
-  
+
       {/* Menu items with icons */}
       <Drawer.Screen
         name="motherhood/index"
         options={{
           title: t.motherhood || 'Motherhood',
           drawerIcon: ({ color, size }) => (<Ionicons name="woman-outline" size={size} color={color} />)
-        }}
-      />
-      <Drawer.Screen
-        name="community/index"
-        options={{
-          title: 'Community',
-          drawerIcon: ({ color, size }) => (<Ionicons name="people-outline" size={size} color={color} />)
         }}
       />
       <Drawer.Screen
