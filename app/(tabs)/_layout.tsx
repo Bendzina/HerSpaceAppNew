@@ -94,6 +94,13 @@ export default function TabLayout() {
           ),
         }}
       />
+      {/* Hide nested dagi-ai routes from tab bar */}
+      <Tabs.Screen
+        name="dagi-ai/tarot"
+        options={{
+          href: null, // Hide from tab bar
+        }}
+      />
       <Tabs.Screen
         name="community"
         options={{

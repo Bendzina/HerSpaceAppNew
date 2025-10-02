@@ -1,4 +1,5 @@
 import { authorizedFetch } from './authService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface TarotCard {
   id: number;
@@ -53,7 +54,7 @@ export interface DagiAIResponse {
 }
 
 class DagiAIService {
-  private readonly baseUrl = 'http://192.168.100.4:8000/api/journal';
+  private readonly baseUrl = 'http://192.168.100.7:8000/api/journal';
 
   /**
    * Send a message to Dagi AI (handles both general chat and tarot requests)
@@ -66,13 +67,26 @@ class DagiAIService {
       console.log('🔵 URL:', url);
       console.log('🔵 Prompt:', prompt);
       
-      const response = await authorizedFetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ prompt }),
-      });
+      // Try to use auth if available; fall back to unauthenticated request
+      const token = await AsyncStorage.getItem('access_token');
+      let response: Response;
+      if (token) {
+        response = await authorizedFetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ prompt }),
+        });
+      } else {
+        response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ prompt }),
+        });
+      }
 
       console.log('🔵 Response Status:', response.status);
       console.log('🔵 Response OK:', response.ok);

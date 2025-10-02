@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const BASE_URL = 'http://192.168.100.4:8000/api';
+const BASE_URL = 'http://192.168.100.7:8000/api';
 
 // --- Auth failure notifications (for auto-logout) ---
 const authFailureHandlers = new Set<() => void>();

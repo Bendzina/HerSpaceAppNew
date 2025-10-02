@@ -92,7 +92,7 @@ export default function ProfileScreen() {
     const fetchUserData = async () => {
       try {
         // Fetch user stats
-        const statsResponse = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://192.168.100.4:8000/api'}/users/stats/`, {
+        const statsResponse = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://192.168.100.7:8000/api'}/users/stats/`, {
           headers: {
             'Authorization': `Bearer ${await AsyncStorage.getItem('access_token')}`,
             'Content-Type': 'application/json',
@@ -109,7 +109,7 @@ export default function ProfileScreen() {
         }
 
         // Fetch user profile to get the latest image
-        const profileResponse = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://192.168.100.4:8000/api'}/users/me/`, {
+        const profileResponse = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://192.168.100.7:8000/api'}/users/me/`, {
           headers: {
             'Authorization': `Bearer ${await AsyncStorage.getItem('access_token')}`,
             'Content-Type': 'application/json',
@@ -123,7 +123,7 @@ export default function ProfileScreen() {
           await updateUserProfile(userData);
           
           if (userData.profile_image) {
-            const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.100.4:8000';
+            const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.100.7:8000';
             const imageUrl = userData.profile_image.startsWith('http')
               ? userData.profile_image
               : `${baseUrl}${userData.profile_image.startsWith('/') ? '' : '/'}${userData.profile_image}`;

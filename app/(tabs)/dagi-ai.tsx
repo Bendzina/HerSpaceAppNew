@@ -14,6 +14,7 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../ThemeContext';
 import { useLanguage } from '../LanguageContext';
@@ -400,7 +401,7 @@ ${reading.temporary_note ? `\n📝 ${reading.temporary_note}` : ''}`;
       <View style={styles.actionsContainer}>
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => setShowCardSelector(true)}
+          onPress={() => router.push('/(tabs)/dagi-ai/tarot' as any)}
           activeOpacity={0.8}
         >
           <LinearGradient
