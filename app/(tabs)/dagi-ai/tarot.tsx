@@ -89,8 +89,17 @@ export default function TarotScreen() {
 
   const getTarotReading = async (question: string, readingType: string) => {
     try {
-      // Use the sendMessage method which handles both tarot and general AI requests
-      const response = await dagiAIService.sendMessage(`[${readingType}] ${question}`);
+      // Use a more structured prompt that specifies spread positions for better AI interpretation
+      const spreadStructure = selectedCardCount === 1 
+        ? 'single card' 
+        : selectedCardCount === 3 
+        ? 'three card spread (past, present, future)' 
+        : selectedCardCount === 5 
+        ? 'five card spread (past, present, challenge, outcome, advice)' 
+        : `Celtic Cross spread with ${selectedCardCount} cards`;
+      
+      const prompt = `Provide a tarot reading using ${spreadStructure} for the question: "${question}". Include interpretation for each card position and overall guidance.`;
+      const response = await dagiAIService.sendMessage(prompt);
       return response;
     } catch (error) {
       console.error('Error getting tarot reading:', error);
@@ -100,9 +109,11 @@ export default function TarotScreen() {
 
   const formatTarotReading = (reading: any): string => {
     if (language === 'ka') {
-      return `🔮 ტაროს გაშლა: ${reading.prompt_type === 'single_card' ? 'ერთი კარტი' : reading.prompt_type === 'three_card' ? 'სამი კარტი' : 'კარტები'}\n\n${reading.interpretation}\n\n💡 რჩევა: ${reading.advice}\n\n${reading.temporary_note ? `📝 ${reading.temporary_note}` : ''}`;
+      const cardLabel = selectedCardCount === 1 ? 'ერთი კარტი' : selectedCardCount === 3 ? 'სამი კარტი' : selectedCardCount === 5 ? 'ხუთი კარტი' : `${selectedCardCount} კარტი`;
+      return `🔮 ტაროს გაშლა: ${cardLabel}\n\n${reading.interpretation}\n\n💡 რჩევა: ${reading.advice}\n\n${reading.temporary_note ? `📝 ${reading.temporary_note}` : ''}`;
     } else {
-      return `🔮 Tarot Reading: ${reading.prompt_type === 'single_card' ? 'Single Card' : reading.prompt_type === 'three_card' ? 'Three Card' : 'Cards'}\n\n${reading.interpretation}\n\n💡 Advice: ${reading.advice}\n\n${reading.temporary_note ? `📝 ${reading.temporary_note}` : ''}`;
+      const cardLabel = selectedCardCount === 1 ? 'Single Card' : selectedCardCount === 3 ? 'Three Card' : selectedCardCount === 5 ? 'Five Card' : `${selectedCardCount} Cards`;
+      return `🔮 Tarot Reading: ${cardLabel}\n\n${reading.interpretation}\n\n💡 Advice: ${reading.advice}\n\n${reading.temporary_note ? `📝 ${reading.temporary_note}` : ''}`;
     }
   };
 
@@ -221,6 +232,11 @@ export default function TarotScreen() {
                 {language === 'ka' ? 'თქვენი კითხვა' : 'Your Question'}
               </Text>
             </View>
+            <Text style={[styles.instructionText, { color: colors.textSecondary }]}>
+              {language === 'ka' 
+                ? 'ჩაისუნთქეთ ცხვირით, ამოისუნთქეთ პირით, 3-ჯერ და დაფიქრდით თქვენს კითხვაზე სუფთა გულით' 
+                : 'Inhale through your nose and exhale through your mouth 3 times and think about your question with a pure heart.'}
+            </Text>
             <TextInput
               style={[styles.input, { 
                 color: colors.text, 
@@ -454,6 +470,12 @@ const styles = StyleSheet.create({
       fontSize: 16,
       fontWeight: '700',
       marginLeft: 8,
+    },
+    instructionText: {
+      fontSize: 14,
+      fontStyle: 'italic',
+      marginBottom: 12,
+      textAlign: 'center',
     },
     input: {
       minHeight: 100,

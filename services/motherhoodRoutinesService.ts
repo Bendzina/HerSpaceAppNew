@@ -13,7 +13,8 @@ export interface ChildcareRoutine {
   updated_at?: string;
 }
 
-const BASE = '/motherhood/routines/';
+// Note: authorizedFetch already adds the base URL, so we only need the path after /api
+const BASE = 'motherhood/childcare-routines/';
 
 export type ListParams = {
   search?: string;
@@ -29,12 +30,13 @@ function toQuery(p?: ListParams): string {
   if (p.ordering) q.set('ordering', p.ordering);
   if (p.routine_type) q.set('routine_type', String(p.routine_type));
   if (typeof p.is_active === 'boolean') q.set('is_active', String(p.is_active));
-  const s = q.toString();
-  return s ? `?${s}` : '';
+  return q.toString();
 }
 
 export async function listRoutines(params?: ListParams): Promise<ChildcareRoutine[]> {
-  const resp = await authorizedFetch(`${BASE}${toQuery(params)}`, { method: 'GET' });
+  const query = toQuery(params);
+  const url = query ? `${BASE}?${query}` : BASE;
+  const resp = await authorizedFetch(url, { method: 'GET' });
   if (!resp.ok) throw new Error(`Failed to load routines (${resp.status})`);
   const data = await resp.json();
   if (Array.isArray(data)) return data as ChildcareRoutine[];
@@ -77,7 +79,10 @@ export async function updateRoutine(id: string | number, payload: Partial<Create
 }
 
 export async function deleteRoutine(id: string | number): Promise<void> {
-  const resp = await authorizedFetch(`${BASE}${id}/`, { method: 'DELETE' });
+  const url = `${BASE}${id}/`;
+  const resp = await authorizedFetch(url, {
+    method: 'DELETE',
+  });
   if (!resp.ok) {
     const t = await resp.text();
     throw new Error(t || `Failed to delete routine (${resp.status})`);
