@@ -14,7 +14,7 @@ export interface ChildcareRoutine {
 }
 
 // Note: authorizedFetch already adds the base URL, so we only need the path after /api
-const BASE = 'motherhood/childcare-routines/';
+const BASE = 'motherhood/routines/';
 
 export type ListParams = {
   search?: string;
