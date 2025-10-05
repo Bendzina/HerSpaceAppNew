@@ -1,22 +1,21 @@
-import React, { useState } from "react";
-export const href = null;
-import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Dimensions, 
-  ScrollView,
-  TextInput,
-  Alert 
-} from "react-native";
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { createMoodCheckIn, updateMoodCheckIn, listMoodCheckIns, type EmotionalSupportOption, type MoodCheckIn } from "@/services/moodService";
-import { getProfile } from "@/services/wellnessProfileService";
-import { useTheme } from './ThemeContext';
-import { useLanguage } from './LanguageContext';
 import { translations as sharedTranslations } from '@/i18n/translations';
+import { createMoodCheckIn, listMoodCheckIns, updateMoodCheckIn, type EmotionalSupportOption, type MoodCheckIn } from "@/services/moodService";
+import { getProfile } from "@/services/wellnessProfileService";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useState } from "react";
+import {
+  Alert,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from "react-native";
+import { useLanguage } from './LanguageContext';
+import { useTheme } from './ThemeContext';
+export const href = null;
 
 const { width, height } = Dimensions.get('window');
 
